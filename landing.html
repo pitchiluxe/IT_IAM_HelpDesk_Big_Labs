@@ -3,135 +3,222 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IT/IAM Help Desk Lab — Training Environment</title>
+<title>IT / IAM / Help Desk Lab — Training Environment by Erick Omari</title>
 <style>
+/* ===== Reset & Base ===== */
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0d1117;color:#e6edf3;line-height:1.6}
-a{color:#58a6ff;text-decoration:none}
-a:hover{text-decoration:underline}
-.container{max-width:1100px;margin:0 auto;padding:0 24px}
-
-/* Hero */
-.hero{padding:80px 0 60px;text-align:center;background:linear-gradient(180deg,#0d1117 0%,#161b22 100%);border-bottom:1px solid #30363d}
-.hero h1{font-size:42px;font-weight:700;margin-bottom:16px;background:linear-gradient(90deg,#58a6ff,#79c0ff,#a371f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero p{font-size:18px;color:#8b949e;max-width:640px;margin:0 auto 32px}
-.hero-badges{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:32px}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:13px;border:1px solid #30363d;background:#161b22}
-.badge.green{border-color:#238636;color:#7ee787}
-.badge.blue{border-color:#1f6feb;color:#79c0ff}
-.badge.purple{border-color:#8957e5;color:#d2a8ff}
-.btn-download{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;font-size:16px;font-weight:600;background:#238636;color:#fff;border:none;border-radius:8px;cursor:pointer;transition:all .2s}
-.btn-download:hover{background:#2ea043;transform:translateY(-2px);box-shadow:0 8px 24px rgba(35,134,54,.4)}
-.btn-secondary{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;font-size:15px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:8px;cursor:pointer;margin-left:12px;transition:all .2s}
-.btn-secondary:hover{background:#30363d}
-
-/* Features */
-.features{padding:60px 0}
-.section-title{font-size:28px;font-weight:600;text-align:center;margin-bottom:40px}
-.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
-.feature-card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;transition:all .2s}
-.feature-card:hover{border-color:#58a6ff;transform:translateY(-2px)}
-.feature-icon{font-size:32px;margin-bottom:12px}
-.feature-card h3{font-size:18px;margin-bottom:8px;color:#e6edf3}
-.feature-card p{font-size:14px;color:#8b949e}
-
-/* Labs */
-.labs{padding:60px 0;background:#161b22;border-top:1px solid #30363d;border-bottom:1px solid #30363d}
-.lab-item{display:flex;gap:20px;padding:20px 0;border-bottom:1px solid #30363d}
-.lab-item:last-child{border-bottom:none}
-.lab-num{font-size:36px;font-weight:700;color:#58a6ff;min-width:60px}
-.lab-item h3{font-size:18px;margin-bottom:6px}
-.lab-item p{font-size:14px;color:#8b949e}
-.lab-skills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.skill-tag{font-size:11px;padding:2px 8px;border-radius:3px;background:#21262d;border:1px solid #30363d;color:#8b949e}
-
-/* AI section */
-.ai-section{padding:60px 0;text-align:center}
-.ai-section h2{font-size:28px;margin-bottom:16px}
-.ai-section p{font-size:16px;color:#8b949e;max-width:600px;margin:0 auto 24px}
-.ai-features{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-top:24px}
-.ai-feature{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 24px;text-align:center}
-.ai-feature .ai-icon{font-size:28px;margin-bottom:8px}
-.ai-feature h4{font-size:14px;margin-bottom:4px}
-.ai-feature p{font-size:12px;color:#8b949e}
-
-/* Install steps */
-.install{padding:60px 0;background:#161b22;border-top:1px solid #30363d}
-.install-steps{max-width:700px;margin:0 auto}
-.step{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid #30363d}
-.step:last-child{border-bottom:none}
-.step-num{width:32px;height:32px;border-radius:50%;background:#238636;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
-.step h4{font-size:15px;margin-bottom:4px}
-.step p{font-size:13px;color:#8b949e}
-.step code{background:#0d1117;padding:2px 8px;border-radius:4px;font-family:monospace;font-size:12px;color:#79c0ff}
-
-/* Footer */
-.footer{padding:40px 0;text-align:center;color:#8b949e;font-size:13px;border-top:1px solid #30363d}
-.footer a{color:#58a6ff}
-
-@media(max-width:768px){
-.hero h1{font-size:30px}
-.hero p{font-size:15px}
-.features-grid{grid-template-columns:1fr}
-.lab-item{flex-direction:column}
+:root{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2236;--border:#1e293b;
+  --text:#e2e8f0;--text-dim:#94a3b8;--text-muted:#64748b;
+  --accent:#3b82f6;--accent2:#2563eb;--accent-glow:rgba(59,130,246,.15);
+  --green:#10b981;--orange:#f59e0b;--red:#ef4444;--purple:#8b5cf6;
+  --radius:12px;--radius-sm:8px;
+  --font:'Segoe UI',system-ui,-apple-system,sans-serif;
+  --mono:'Cascadia Code','Consolas','Courier New',monospace;
 }
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none;transition:color .2s}
+a:hover{color:#60a5fa}
+img{max-width:100%;display:block}
+.container{max-width:1100px;margin:reveal auto;padding:0 24px}
+
+/* ===== Scroll Animations ===== */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-delay-1{transition-delay:.1s}
+.reveal-delay-2{transition-delay:.2s}
+.reveal-delay-3{transition-delay:.3s}
+
+/* ===== Navbar ===== */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;transition:all .3s ease}
+.nav.scrolled{background:rgba(10,14,26,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 0}
+.nav-inner{max-width:1100px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{font-size:18px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.nav-logo span{color:var(--accent)}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{color:var(--text-dim);font-size:14px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{padding:8px 20px;background:var(--accent);color:#fff!important;border-radius:var(--radius-sm);font-weight:600;transition:all .2s}
+.nav-cta:hover{background:var(--accent2);transform:translateY(-1px)}
+@media(max-width:768px){.nav-links a:not(.nav-cta){display:none}}
+
+/* ===== Hero ===== */
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden}
+.hero-bg{position:absolute;inset:0;z-index:0}
+.hero-bg::before{content:'';position:absolute;top:20%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%);animation:pulse 6s ease-in-out infinite}
+.hero-bg::after{content:'';position:absolute;bottom:10%;right:20%;width:400px;height:400px;background:radial-gradient(circle,rgba(139,92,246,.08) 0%,transparent 70%);animation:pulse 8s ease-in-out infinite reverse}
+@keyframes pulse{0%,100%{opacity:.5;transform:translateX(-50%) scale(1)}50%{opacity:.8;transform:translateX(-50%) scale(1.1)}}
+.hero-content{position:relative;z-index:1;max-width:760px;padding:0 24px}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:20px;font-size:13px;color:var(--green);border:1px solid rgba(16,185,129,.3);background:rgba(16,185,129,.08);margin-bottom:24px;animation:fadeInDown .8s ease}
+.hero-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+.hero h1{font-size:52px;font-weight:800;line-height:1.15;margin-bottom:20px;animation:fadeInUp .8s ease .1s both}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.hero h1 .grad{background:linear-gradient(135deg,#3b82f6,#60a5fa,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:18px;color:var(--text-dim);max-width:600px;margin:0 auto 36px;animation:fadeInUp .8s ease .2s both}
+.hero-buttons{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation:fadeInUp .8s ease .3s both}
+.btn-primary{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;font-size:15px;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:all .25s;box-shadow:0 4px 20px rgba(59,130,246,.3)}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-2px);box-shadow:0 8px 30px rgba(59,130,246,.4)}
+.btn-outline{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;font-size:15px;font-weight:500;color:var(--text);background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .25s}
+.btn-outline:hover{border-color:var(--accent);background:var(--accent-glow)}
+.hero-scroll{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);color:var(--text-muted);font-size:12px;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
+
+/* ===== Section Headers ===== */
+.section{padding:90px 0}
+.section-header{text-align:center;margin-bottom:50px}
+.section-tag{display:inline-block;font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+.section-title{font-size:34px;font-weight:700;margin-bottom:12px}
+.section-sub{font-size:16px;color:var(--text-dim);max-width:560px;margin:0 auto}
+
+/* ===== Features Grid ===== */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+.feature-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;transition:all .3s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden}
+.feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);transform:translateX(-100%);transition:transform .5s}
+.feature-card:hover{border-color:rgba(59,130,246,.4);transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.feature-card:hover::before{transform:translateX(100%)}
+.feature-icon{font-size:36px;margin-bottom:16px;display:inline-block;transition:transform .3s}
+.feature-card:hover .feature-icon{transform:scale(1.1) rotate(-5deg)}
+.feature-card h3{font-size:18px;font-weight:600;margin-bottom:8px;color:var(--text)}
+.feature-card p{font-size:14px;color:var(--text-dim);line-height:1.6}
+
+/* ===== Labs Timeline ===== */
+.labs-section{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.lab-timeline{max-width:760px;margin:0 auto;position:relative}
+.lab-timeline::before{content:'';position:absolute;left:30px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--accent),var(--purple),transparent)}
+.lab-item{display:flex;gap:24px;padding:24px 0;position:relative}
+.lab-dot{width:60px;height:60px;border-radius:50%;background:var(--surface2);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--accent);flex-shrink:0;z-index:1;transition:all .3s}
+.lab-item:hover .lab-dot{transform:scale(1.1);box-shadow:0 0 20px var(--accent-glow)}
+.lab-content{flex:1;padding-top:8px}
+.lab-content h3{font-size:18px;font-weight:600;margin-bottom:6px}
+.lab-content p{font-size:14px;color:var(--text-dim);margin-bottom:8px}
+.lab-skills{display:flex;gap:6px;flex-wrap:wrap}
+.skill-tag{font-size:11px;padding:3px 10px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);transition:all .2s}
+.skill-tag:hover{border-color:var(--accent);color:var(--text)}
+
+/* ===== AI Section ===== */
+.ai-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:800px;margin:0 auto}
+.ai-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center;transition:all .3s}
+.ai-card:hover{border-color:rgba(139,92,246,.4);transform:translateY(-3px)}
+.ai-card .ai-icon{font-size:32px;margin-bottom:12px}
+.ai-card h4{font-size:15px;font-weight:600;margin-bottom:6px}
+.ai-card p{font-size:13px;color:var(--text-dim)}
+
+/* ===== Install Steps ===== */
+.install-section{background:var(--surface);border-top:1px solid var(--border)}
+.install-steps{max-width:680px;margin:0 auto}
+.step{display:flex;gap:18px;padding:20px 0;border-bottom:1px solid var(--border);transition:all .3s}
+.step:last-child{border-bottom:none}
+.step:hover{padding-left:8px}
+.step-num{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:15px;transition:transform .3s}
+.step:hover .step-num{transform:scale(1.1)}
+.step h4{font-size:15px;font-weight:600;margin-bottom:4px}
+.step p{font-size:13px;color:var(--text-dim)}
+.step code{background:var(--bg);padding:3px 10px;border-radius:4px;font-family:var(--mono);font-size:12px;color:#60a5fa;border:1px solid var(--border)}
+
+/* ===== Contact Section ===== */
+.contact-section{padding:90px 0}
+.contact-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:40px;max-width:900px;margin:0 auto;align-items:start}
+@media(max-width:768px){.contact-grid{grid-template-columns:1fr}}
+.contact-info{text-align:center}
+.contact-photo{width:180px;height:180px;border-radius:50%;margin:0 auto 20px;border:3px solid var(--border);object-fit:cover;transition:all .4s;filter:grayscale(.2)}
+.contact-photo:hover{border-color:var(--accent);filter:grayscale(0);transform:scale(1.03)}
+.contact-info h3{font-size:22px;font-weight:700;margin-bottom:4px}
+.contact-info .role{font-size:14px;color:var(--accent);margin-bottom:12px}
+.contact-info .bio{font-size:14px;color:var(--text-dim);line-height:1.6}
+.contact-social{display:flex;gap:12px;justify-content:center;margin-top:18px}
+.contact-social a{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .25s}
+.contact-social a:hover{border-color:var(--accent);background:var(--accent-glow);transform:translateY(-2px)}
+.contact-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;font-weight:500}
+.form-group input,.form-group textarea{width:100%;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:120px}
+.form-status{padding:12px 16px;border-radius:var(--radius-sm);font-size:14px;margin-top:12px;display:none}
+.form-status.success{display:block;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green)}
+.form-status.error{display:block;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.btn-send{width:100%;padding:14px;font-size:15px;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:all .25s}
+.btn-send:hover{background:var(--accent2);transform:translateY(-1px)}
+.btn-send:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+/* ===== Footer ===== */
+.footer{padding:40px 0;text-align:center;border-top:1px solid var(--border)}
+.footer p{font-size:13px;color:var(--text-muted)}
+.footer .footer-links{margin-top:10px;display:flex;gap:20px;justify-content:center}
+.footer .footer-links a{font-size:13px;color:var(--text-dim)}
 </style>
 </head>
 <body>
 
-<!-- Hero -->
-<section class="hero">
-  <div class="container">
-    <h1>IT / IAM / Help Desk Lab</h1>
-    <p>An employer-ready, integrated training environment that simulates a Windows 11 workstation with hands-on labs for identity management, Active Directory, and help desk ticketing — powered by local AI.</p>
-    <div class="hero-badges">
-      <span class="badge green">✓ Windows 11 Desktop Simulation</span>
-      <span class="badge blue">✓ Active Directory</span>
-      <span class="badge purple">✓ Ollama AI Powered</span>
+<!-- Navbar -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">IT/IAM<span>Lab</span></div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#labs">Labs</a>
+      <a href="#ai">AI</a>
+      <a href="#install">Install</a>
+      <a href="#contact">Contact</a>
+      <a href="https://github.com/pitchiluxe/IT_IAM_HelpDesk_Big_Labs/releases/latest" class="nav-cta" target="_blank">Download</a>
+      <a href="/app" class="nav-cta" style="background:transparent;border:1px solid var(--border);margin-left:8px">Launch App</a>
     </div>
-    <div>
-      <button class="btn-download" onclick="window.open('https://github.com/pitchiluxe/IT_IAM_HelpDesk_Big_Labs/releases/latest','_blank')">
-        ⬇ Download for Windows
-      </button>
-      <button class="btn-secondary" onclick="window.open('https://github.com/pitchiluxe/IT_IAM_HelpDesk_Big_Labs','_blank')">
-        📦 View on GitHub
-      </button>
-    </div>
-    <p style="margin-top:20px;font-size:13px;color:#6e7681">Free · Open Source · Runs locally on your computer</p>
   </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-badge">Open Source · Runs Locally · Free</div>
+    <h1>Train Like It's <span class="grad">Day One</span><br>on the Job</h1>
+    <p>A Windows 11-style desktop training environment with hands-on labs for identity management, Active Directory, help desk ticketing, and troubleshooting — powered by local AI.</p>
+    <div class="hero-buttons">
+      <button class="btn-primary" onclick="window.open('https://github.com/pitchiluxe/IT_IAM_HelpDesk_Big_Labs/releases/latest','_blank')">Download for Windows</button>
+      <button class="btn-outline" onclick="window.location.href='/app'">Launch App</button>
+    </div>
+  </div>
+  <div class="hero-scroll">Scroll to explore ↓</div>
 </section>
 
 <!-- Features -->
-<section class="features">
+<section class="section" id="features">
   <div class="container">
-    <h2 class="section-title">What's Inside</h2>
+    <div class="section-header reveal">
+      <div class="section-tag">What's Inside</div>
+      <h2 class="section-title">Everything in One Desktop</h2>
+      <p class="section-sub">Six interactive tools that mirror the real software an IT professional uses every day.</p>
+    </div>
     <div class="features-grid">
-      <div class="feature-card">
+      <div class="feature-card reveal">
         <div class="feature-icon">🖥️</div>
         <h3>Windows 11 Desktop</h3>
-        <p>A realistic desktop environment with taskbar, start menu, windows, file explorer, settings, and multi-app support — all in your browser.</p>
+        <p>A realistic desktop with taskbar, start menu, draggable windows, file explorer, settings, and multi-app support — all in your browser.</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon">🏢</div>
         <h3>Active Directory</h3>
         <p>Full MMC-style ADUC snap-in with OUs, users, groups, computers, domain controllers, right-click menus, and tabbed properties dialogs.</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-2">
         <div class="feature-icon">🎫</div>
         <h3>Help Desk Ticketing</h3>
         <p>ServiceNow-style ticket console with priority colors, SLA timers, search, filter chips, assignment, escalation, and AI-powered ticket review.</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal">
         <div class="feature-icon">🔐</div>
         <h3>Entra ID Simulation</h3>
         <p>Microsoft Entra admin center with users, groups, MFA registration, conditional access concepts, and sign-in log troubleshooting.</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon">⚡</div>
         <h3>PowerShell & CMD</h3>
         <p>Interactive terminal simulations with real Windows-style commands for user management, file operations, and system administration.</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-2">
         <div class="feature-icon">🤖</div>
         <h3>AI Lab Assistant</h3>
         <p>A built-in chatbot powered by Ollama that answers questions about IT, IAM, Active Directory, and help desk topics in real time.</p>
@@ -141,48 +228,54 @@ a:hover{text-decoration:underline}
 </section>
 
 <!-- Labs -->
-<section class="labs">
+<section class="section labs-section" id="labs">
   <div class="container">
-    <h2 class="section-title">Three Integrated Labs</h2>
-    <div class="lab-item">
-      <div class="lab-num">01</div>
-      <div>
-        <h3>Windows Local Users & Access Management</h3>
-        <p>Create, disable, and manage local user accounts. Configure group-based access, NTFS permissions, and troubleshoot access-denied scenarios.</p>
-        <div class="lab-skills">
-          <span class="skill-tag">Account lifecycle</span>
-          <span class="skill-tag">Group management</span>
-          <span class="skill-tag">NTFS permissions</span>
-          <span class="skill-tag">Least privilege</span>
-          <span class="skill-tag">PowerShell</span>
+    <div class="section-header reveal">
+      <div class="section-tag">Curriculum</div>
+      <h2 class="section-title">Three Integrated Labs</h2>
+      <p class="section-sub">Each lab builds on the previous one, creating end-to-end workflows that mirror real incidents.</p>
+    </div>
+    <div class="lab-timeline">
+      <div class="lab-item reveal">
+        <div class="lab-dot">01</div>
+        <div class="lab-content">
+          <h3>Windows Local Users & Access Management</h3>
+          <p>Create, disable, and manage local user accounts. Configure group-based access, NTFS permissions, and troubleshoot access-denied scenarios.</p>
+          <div class="lab-skills">
+            <span class="skill-tag">Account lifecycle</span>
+            <span class="skill-tag">Group management</span>
+            <span class="skill-tag">NTFS permissions</span>
+            <span class="skill-tag">Least privilege</span>
+            <span class="skill-tag">PowerShell</span>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="lab-item">
-      <div class="lab-num">02</div>
-      <div>
-        <h3>Microsoft Entra ID & MFA Troubleshooting</h3>
-        <p>Manage Entra ID users and groups, register MFA, investigate sign-in logs, and troubleshoot authentication failures.</p>
-        <div class="lab-skills">
-          <span class="skill-tag">Identity lifecycle</span>
-          <span class="skill-tag">MFA registration</span>
-          <span class="skill-tag">Conditional Access</span>
-          <span class="skill-tag">Sign-in analysis</span>
-          <span class="skill-tag">Auth troubleshooting</span>
+      <div class="lab-item reveal reveal-delay-1">
+        <div class="lab-dot">02</div>
+        <div class="lab-content">
+          <h3>Microsoft Entra ID & MFA Troubleshooting</h3>
+          <p>Manage Entra ID users and groups, register MFA, investigate sign-in logs, and troubleshoot authentication failures.</p>
+          <div class="lab-skills">
+            <span class="skill-tag">Identity lifecycle</span>
+            <span class="skill-tag">MFA registration</span>
+            <span class="skill-tag">Conditional Access</span>
+            <span class="skill-tag">Sign-in analysis</span>
+            <span class="skill-tag">Auth troubleshooting</span>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="lab-item">
-      <div class="lab-num">03</div>
-      <div>
-        <h3>Help Desk Ticketing Simulation</h3>
-        <p>Work a realistic ticket queue with priority matrices, SLA tracking, assignment, escalation, knowledge base, and AI-generated tickets.</p>
-        <div class="lab-skills">
-          <span class="skill-tag">Incident management</span>
-          <span class="skill-tag">Priority matrix</span>
-          <span class="skill-tag">SLA tracking</span>
-          <span class="skill-tag">Escalation</span>
-          <span class="skill-tag">AI ticket review</span>
+      <div class="lab-item reveal reveal-delay-2">
+        <div class="lab-dot">03</div>
+        <div class="lab-content">
+          <h3>Help Desk Ticketing Simulation</h3>
+          <p>Work a realistic ticket queue with priority matrices, SLA tracking, assignment, escalation, knowledge base, and AI-generated tickets.</p>
+          <div class="lab-skills">
+            <span class="skill-tag">Incident management</span>
+            <span class="skill-tag">Priority matrix</span>
+            <span class="skill-tag">SLA tracking</span>
+            <span class="skill-tag">Escalation</span>
+            <span class="skill-tag">AI ticket review</span>
+          </div>
         </div>
       </div>
     </div>
@@ -190,58 +283,64 @@ a:hover{text-decoration:underline}
 </section>
 
 <!-- AI Section -->
-<section class="ai-section">
+<section class="section" id="ai">
   <div class="container">
-    <h2>Powered by Local AI</h2>
-    <p>The Lab Assistant chatbot and AI ticket features are powered by Ollama, running entirely on your computer. No cloud, no API keys, no data leaving your machine.</p>
-    <div class="ai-features">
-      <div class="ai-feature">
+    <div class="section-header reveal">
+      <div class="section-tag">Powered by Local AI</div>
+      <h2 class="section-title">AI That Runs on Your Machine</h2>
+      <p class="section-sub">The Lab Assistant and AI ticket features are powered by Ollama, running entirely on your computer. No cloud, no API keys, no data leaving your machine.</p>
+    </div>
+    <div class="ai-grid">
+      <div class="ai-card reveal">
         <div class="ai-icon">🤖</div>
         <h4>Lab Assistant</h4>
-        <p>Ask questions about any lab topic</p>
+        <p>Ask questions about any lab topic and get instant, context-aware guidance.</p>
       </div>
-      <div class="ai-feature">
+      <div class="ai-card reveal reveal-delay-1">
         <div class="ai-icon">📝</div>
         <h4>AI Ticket Generation</h4>
-        <p>Auto-generate realistic help desk tickets</p>
+        <p>Auto-generate realistic help desk tickets to practice triage and resolution.</p>
       </div>
-      <div class="ai-feature">
+      <div class="ai-card reveal reveal-delay-2">
         <div class="ai-icon">✅</div>
         <h4>AI Ticket Review</h4>
-        <p>Deterministic checks + AI feedback</p>
+        <p>Deterministic checks combined with AI-written feedback on your resolutions.</p>
       </div>
     </div>
   </div>
 </section>
 
 <!-- Install -->
-<section class="install">
+<section class="section install-section" id="install">
   <div class="container">
-    <h2 class="section-title">Getting Started</h2>
+    <div class="section-header reveal">
+      <div class="section-tag">Getting Started</div>
+      <h2 class="section-title">Up and Running in Minutes</h2>
+    </div>
     <div class="install-steps">
-      <div class="step">
+      <div class="step reveal">
         <div class="step-num">1</div>
         <div>
           <h4>Download the installer</h4>
-          <p>Click the Download button above to get the latest Windows executable from the GitHub Releases page.</p>
+          <p>Click the Download button to get the latest Windows executable from the GitHub Releases page.</p>
         </div>
       </div>
-      <div class="step">
+      <div class="step reveal reveal-delay-1">
         <div class="step-num">2</div>
         <div>
           <h4>Install Ollama</h4>
           <p>Download and install Ollama from <a href="https://ollama.com/download" target="_blank">ollama.com/download</a>, then pull a model:</p>
-          <p style="margin-top:6px"><code>ollama pull llama3.2</code></p>
+          <p style="margin-top:8px"><code>ollama pull llama3.2</code></p>
         </div>
       </div>
-      <div class="step">
+      <div class="step reveal reveal-delay-2">
         <div class="step-num">3</div>
         <div>
           <h4>Run the application</h4>
           <p>Launch the installed application. It starts a local server and opens the desktop in your browser automatically.</p>
         </div>
       </div>
-      <div class="step">
+      <div class="step reveal reveal-delay-3">
         <div class="step-num">4</div>
         <div>
           <h4>Log in and start learning</h4>
@@ -252,13 +351,129 @@ a:hover{text-decoration:underline}
   </div>
 </section>
 
+<!-- Contact -->
+<section class="section contact-section" id="contact">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-tag">Get in Touch</div>
+      <h2 class="section-title">Contact</h2>
+      <p class="section-sub">Have a question about the lab or want to collaborate? Send a message.</p>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-info reveal">
+        <img src="/static/erick.jpg" alt="Erick Omari" class="contact-photo">
+        <h3>Erick Omari</h3>
+        <div class="role">Creator & Developer</div>
+        <p class="bio">IT professional specializing in identity and access management, cybersecurity, and cloud engineering. Building training environments that prepare people for real-world IT careers.</p>
+        <div class="contact-social">
+          <a href="https://github.com/pitchiluxe" target="_blank" title="GitHub">🔗</a>
+          <a href="https://www.linkedin.com/in/erickomari/" target="_blank" title="LinkedIn">💼</a>
+          <a href="https://technobiztrader.net" target="_blank" title="Website">🌐</a>
+        </div>
+      </div>
+      <div class="contact-form reveal reveal-delay-1">
+        <form id="contact-form" onsubmit="return submitContact(event)">
+          <div class="form-group">
+            <label for="c-name">Your Name</label>
+            <input type="text" id="c-name" name="name" required placeholder="John Doe">
+          </div>
+          <div class="form-group">
+            <label for="c-email">Your Email</label>
+            <input type="email" id="c-email" name="email" required placeholder="john@example.com">
+          </div>
+          <div class="form-group">
+            <label for="c-message">Message</label>
+            <textarea id="c-message" name="message" required placeholder="Tell me about your question or what you'd like to discuss..."></textarea>
+          </div>
+          <button type="submit" class="btn-send" id="btn-send">Send Message</button>
+          <div class="form-status" id="form-status"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Footer -->
 <footer class="footer">
   <div class="container">
-    <p>IT / IAM / Help Desk Lab — A personal training environment for IT career readiness.</p>
-    <p style="margin-top:8px">Built with FastAPI · SQLite · Ollama · Vanilla JS &nbsp;|&nbsp; <a href="https://github.com/pitchiluxe/IT_IAM_HelpDesk_Big_Labs">GitHub Repository</a></p>
+    <p>IT / IAM / Help Desk Lab — A training environment for IT career readiness.</p>
+    <div class="footer-links">
+      <a href="https://github.com/pitchiluxe/IT_IAM_HelpDesk_Big_Labs">GitHub</a>
+      <a href="https://github.com/pitchiluxe/IT_IAM_HelpDesk_Big_Labs/releases/latest">Download</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <p style="margin-top:12px;font-size:12px">Created by Erick Omari · Built with FastAPI, SQLite, Ollama, and vanilla JavaScript</p>
   </div>
 </footer>
+
+<script>
+// Navbar scroll effect
+window.addEventListener('scroll', function() {
+  var nav = document.getElementById('nav');
+  nav.classList.toggle('scrolled', window.scrollY > 40);
+});
+
+// Scroll reveal animations
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(function(el) {
+  observer.observe(el);
+});
+
+// Contact form submission
+function submitContact(e) {
+  e.preventDefault();
+  var btn = document.getElementById('btn-send');
+  var status = document.getElementById('form-status');
+  var name = document.getElementById('c-name').value.trim();
+  var email = document.getElementById('c-email').value.trim();
+  var message = document.getElementById('c-message').value.trim();
+
+  if (!name || !email || !message) {
+    status.className = 'form-status error';
+    status.textContent = 'Please fill in all fields.';
+    return false;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  status.className = 'form-status';
+  status.style.display = 'none';
+
+  fetch('/api/contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, email: email, message: message })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      status.className = 'form-status success';
+      status.textContent = data.message;
+      document.getElementById('contact-form').reset();
+    } else {
+      status.className = 'form-status error';
+      status.textContent = data.error || 'Something went wrong. Please try again.';
+    }
+  })
+  .catch(function() {
+    status.className = 'form-status error';
+    status.textContent = 'Network error. Please try again.';
+  })
+  .finally(function() {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  });
+
+  return false;
+}
+</script>
 
 </body>
 </html>

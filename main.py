@@ -1050,13 +1050,62 @@ app.mount("/static", StaticFiles(directory=_os.path.join(_BUNDLE_DIR, "static"))
 
 
 @app.get("/")
-async def index():
+async def landing():
+    return FileResponse(_os.path.join(_BUNDLE_DIR, "landing.html"))
+
+
+@app.get("/app")
+async def app_page():
     return FileResponse(_os.path.join(_BUNDLE_DIR, "static", "index.html"))
 
 
-@app.get("/landing")
-async def landing():
-    return FileResponse(_os.path.join(_BUNDLE_DIR, "landing.html"))
+# ---------------------------------------------------------------------------
+# Contact form (landing page) — sends email without exposing the address
+# ---------------------------------------------------------------------------
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+CONTACT_EMAIL = "erickomari243@gmail.com"
+
+
+@app.post("/api/contact")
+async def contact_submit(request: Request):
+    try:
+        body = await request.json()
+        name = (body.get("name") or "").strip()[:100]
+        email = (body.get("email") or "").strip()[:200]
+        message = (body.get("message") or "").strip()[:5000]
+        if not name or not email or not message:
+            return {"ok": False, "error": "All fields are required."}
+        # Store the message in the database so it is not lost even if SMTP fails
+        conn = get_db()
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS contact_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, message TEXT, created TEXT)",
+        )
+        conn.execute(
+            "INSERT INTO contact_messages (name, email, message, created) VALUES (?, ?, ?, ?)",
+            (name, email, message, _now()),
+        )
+        conn.commit()
+        conn.close()
+        # Attempt to send email (best-effort; does not expose the address to the client)
+        try:
+            msg = MIMEMultipart()
+            msg["From"] = "Lab VM Contact <noreply@labvm.local>"
+            msg["To"] = CONTACT_EMAIL
+            msg["Subject"] = f"New contact from {name} — IT/IAM Help Desk Lab"
+            body_text = f"Name: {name}\nEmail: {email}\n\nMessage:\n{message}"
+            msg.attach(MIMEText(body_text, "plain"))
+            # Try local SMTP relay (most dev machines won't have this, but the
+            # message is stored in the database regardless)
+            with smtplib.SMTP("127.0.0.1", 25, timeout=5) as srv:
+                srv.sendmail("noreply@labvm.local", [CONTACT_EMAIL], msg.as_string())
+        except Exception:
+            pass  # Stored in DB; can be retrieved later
+        return {"ok": True, "message": "Thank you! Your message has been received."}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 # ---------------------------------------------------------------------------
