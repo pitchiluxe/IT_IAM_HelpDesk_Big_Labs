@@ -1,8 +1,13 @@
 server/
+api/
+*.py
+requirements.txt
+requirements-dev.txt
 *.spec
 *.db
 server.log
 server.err
 Erick.jpg
-requirements-dev.txt
 landing.html
+.gitignore
+.vercelignore
