@@ -11,7 +11,7 @@ cd lab-vm
 pip install -r requirements-dev.txt
 cd server
 python database.py     # (re)create + seed the database
-python main.py         # start the server
+python labvm_server.py   # start the server
 ```
 
 Open http://127.0.0.1:8000 in your browser.
@@ -79,7 +79,7 @@ The same cross-lab flow works for MFA failures (Service Desk → Entra portal �
 
 ```
 lab-vm/
-├── main.py            # FastAPI: JSON API for all 3 labs + static SPA serving
+├── labvm_server.py   # FastAPI: JSON API for all 3 labs + static SPA serving
 ├── database.py        # SQLite schema + seed data (with intentional failures)
 ├── build_exe.py       # PyInstaller build script for standalone executable
 ├── landing.html       # Landing page for the project website

@@ -20,7 +20,7 @@ import subprocess
 import shutil
 
 APP_NAME = "IT_IAM_HelpDesk_Lab"
-MAIN_SCRIPT = "main.py"
+MAIN_SCRIPT = "labvm_server.py"
 
 def check_pyinstaller():
     try:

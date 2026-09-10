@@ -1,7 +1,7 @@
 """
 Lab VM - unified FastAPI backend.
 Serves the Windows 11 desktop SPA (static/) and a JSON API for all three labs.
-Run:  python main.py  (or)  uvicorn main:app --reload
+Run:  python labvm_server.py  (or)  uvicorn labvm_server:app --reload
 """
 from fastapi import FastAPI, Request, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, FileResponse

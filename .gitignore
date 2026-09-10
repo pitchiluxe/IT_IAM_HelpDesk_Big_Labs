@@ -31,3 +31,5 @@ Thumbs.db
 *.json
 !package.json
 !vercel.json
+
+.vercel
