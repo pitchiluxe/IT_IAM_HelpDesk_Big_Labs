@@ -6,12 +6,19 @@ SQLite schema + seed data for all three labs:
   Lab 3 - Help desk tickets, notes, knowledge base, users
 """
 import sqlite3
+import sys
+import os
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 def _now_dt():
     return datetime.now(timezone.utc)
 
-DATABASE_PATH = Path(__file__).parent / "labvm.db"
+# When bundled with PyInstaller, use the exe's directory so the database
+# persists next to the executable instead of in a temp folder.
+if getattr(sys, 'frozen', False):
+    DATABASE_PATH = Path(os.path.dirname(sys.executable)) / "labvm.db"
+else:
+    DATABASE_PATH = Path(__file__).parent / "labvm.db"
 
 
 def _now():

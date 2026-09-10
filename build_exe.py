@@ -43,7 +43,7 @@ def build():
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
-        "--windowed",                    # no console window
+        "--console",                     # show console window (useful for server logs)
         "--name", APP_NAME,
         "--add-data", "static;static",   # bundle static files
         "--add-data", "database.py;.",   # bundle database module
@@ -54,8 +54,18 @@ def build():
         "--hidden-import", "starlette",
         "--hidden-import", "starlette.staticfiles",
         "--hidden-import", "starlette.responses",
+        "--hidden-import", "ctypes._layout",  # Python 3.14 internal module
+        "--hidden-import", "click",
         "--collect-data", "fastapi",
         "--collect-data", "starlette",
+        "--exclude-module", "tkinter",   # not needed, causes Tcl data errors
+        "--exclude-module", "_tkinter",
+        "--exclude-module", "matplotlib",
+        "--exclude-module", "PyQt5",
+        "--exclude-module", "PySide6",
+        "--exclude-module", "pytest",
+        "--exclude-module", "pkg_resources",  # setuptools vendored, causes file errors
+        "--exclude-module", "setuptools",
         MAIN_SCRIPT,
     ]
 

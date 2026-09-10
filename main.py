@@ -1039,17 +1039,24 @@ async def browse_proxy(request: Request, url: str = ""):
 # ---------------------------------------------------------------------------
 # Static SPA + startup
 # ---------------------------------------------------------------------------
-app.mount("/static", StaticFiles(directory="static"), name="static")
+import sys as _sys
+import os as _os
+
+# When bundled with PyInstaller, bundled data files (static/, landing.html)
+# are extracted to sys._MEIPASS. Use that path; otherwise use relative paths.
+_BUNDLE_DIR = getattr(_sys, '_MEIPASS', _os.path.dirname(_os.path.abspath(__file__)))
+
+app.mount("/static", StaticFiles(directory=_os.path.join(_BUNDLE_DIR, "static")), name="static")
 
 
 @app.get("/")
 async def index():
-    return FileResponse("static/index.html")
+    return FileResponse(_os.path.join(_BUNDLE_DIR, "static", "index.html"))
 
 
 @app.get("/landing")
 async def landing():
-    return FileResponse("landing.html")
+    return FileResponse(_os.path.join(_BUNDLE_DIR, "landing.html"))
 
 
 # ---------------------------------------------------------------------------
@@ -1394,14 +1401,30 @@ async def startup():
 
 
 if __name__ == "__main__":
+    import sys
+    import os
     import uvicorn
     import threading
     import webbrowser
     import time
+    import traceback
+
+    # When bundled with PyInstaller, set the working directory to the exe folder
+    # so the SQLite database is created next to the executable, not in a temp dir.
+    if getattr(sys, 'frozen', False):
+        os.chdir(os.path.dirname(sys.executable))
 
     def open_browser():
         time.sleep(2)
         webbrowser.open("http://127.0.0.1:8000/")
 
-    threading.Thread(target=open_browser, daemon=True).start()
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    try:
+        init_db()
+        threading.Thread(target=open_browser, daemon=True).start()
+        uvicorn.run(app, host="127.0.0.1", port=8000)
+    except Exception as e:
+        # Log errors to a file so we can debug even in windowed mode
+        log_path = os.path.join(os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else '.', 'error.log')
+        with open(log_path, 'w') as f:
+            f.write(f"Startup error:\n{traceback.format_exc()}\n")
+        raise
