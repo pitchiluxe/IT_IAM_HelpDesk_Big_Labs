@@ -12,7 +12,7 @@ into a single distributable folder. The resulting executable:
 
 Prerequisites:
     pip install pyinstaller
-    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
 """
 import os
 import sys

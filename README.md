@@ -8,7 +8,7 @@ A browser-based **Windows 11-style desktop** that unifies all three IT/IAM/Help 
 
 ```bash
 cd lab-vm
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 python database.py     # (re)create + seed the database
 python main.py         # start the server
 ```

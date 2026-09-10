@@ -1,0 +1,10 @@
+main.py
+database.py
+build_exe.py
+_fix.py
+_check.js
+*.spec
+*.db
+server.log
+server.err
+Erick.jpg
