@@ -1,11 +1,9 @@
 {
   "builds": [
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "erick.jpg", "use": "@vercel/static" }
+    { "src": "index.html", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/landing", "dest": "/index.html" },
-    { "src": "/erick.jpg", "dest": "/erick.jpg" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
