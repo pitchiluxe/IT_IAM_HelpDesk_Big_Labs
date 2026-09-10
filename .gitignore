@@ -30,3 +30,4 @@ Thumbs.db
 .idea/
 *.json
 !package.json
+!vercel.json
