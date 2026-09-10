@@ -1,2 +1,0 @@
-# Vercel serverless functions use only the Python standard library.
-# No external dependencies needed for the contact form API.
