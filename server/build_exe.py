@@ -1,14 +1,15 @@
 """
-build_exe.py — Build a standalone Windows executable for the IT/IAM Help Desk Lab.
+build_exe.py — Build a standalone Windows application for the IT/IAM Help Desk Lab.
 
 Usage:
     python build_exe.py
 
 This uses PyInstaller to bundle the FastAPI app, database, and static files
 into a single distributable folder. The resulting executable:
-  1. Starts the FastAPI server on localhost:8000
-  2. Opens the default browser to the app
-  3. Runs in the system tray (console window hidden)
+  1. Starts the FastAPI server on localhost:8000 (behind the scenes)
+  2. Opens a native desktop window (pywebview / Edge WebView2) — NOT a browser
+  3. Shows a system tray icon with Open/Exit menu
+  4. No console window — runs as a proper Windows application
 
 Prerequisites:
     pip install pyinstaller
@@ -21,6 +22,7 @@ import shutil
 
 APP_NAME = "IT_IAM_HelpDesk_Lab"
 MAIN_SCRIPT = "labvm_server.py"
+ICON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "app.ico")
 
 def check_pyinstaller():
     try:
@@ -47,7 +49,6 @@ def build():
         "--name", APP_NAME,
         "--add-data", "../static;static",   # bundle static files (from parent dir)
         "--add-data", "database.py;.",       # bundle database module (same dir)
-        "--add-data", "../landing.html;.",   # bundle landing page (from parent dir)
         "--hidden-import", "httpx",
         "--hidden-import", "uvicorn",
         "--hidden-import", "fastapi",
@@ -56,13 +57,20 @@ def build():
         "--hidden-import", "starlette.responses",
         "--hidden-import", "ctypes._layout",  # Python 3.14 internal module
         "--hidden-import", "click",
+        # System tray icon
         "--hidden-import", "pystray",
         "--hidden-import", "pystray._win32",
         "--hidden-import", "PIL",
         "--hidden-import", "PIL.Image",
         "--hidden-import", "PIL.ImageDraw",
+        # Native window (pywebview uses Edge WebView2 on Windows)
+        "--hidden-import", "webview",
+        "--hidden-import", "webview.platforms.edgechromium",
+        "--hidden-import", "clr_loader",
+        "--hidden-import", "pythonnet",
         "--collect-data", "fastapi",
         "--collect-data", "starlette",
+        "--collect-data", "webview",
         "--exclude-module", "tkinter",   # not needed, causes Tcl data errors
         "--exclude-module", "_tkinter",
         "--exclude-module", "matplotlib",
@@ -73,6 +81,13 @@ def build():
         "--exclude-module", "setuptools",
         MAIN_SCRIPT,
     ]
+
+    # Add icon if it exists
+    if os.path.isfile(ICON_PATH):
+        cmd.extend(["--icon", ICON_PATH])
+        print(f"[OK] Using icon: {ICON_PATH}")
+    else:
+        print(f"[WARN] Icon not found: {ICON_PATH}")
 
     print(f"[BUILD] Running PyInstaller...")
     print(f"  {' '.join(cmd)}")

@@ -13,10 +13,13 @@ from datetime import datetime, timedelta, timezone
 def _now_dt():
     return datetime.now(timezone.utc)
 
-# When bundled with PyInstaller, use the exe's directory so the database
-# persists next to the executable instead of in a temp folder.
+# When bundled with PyInstaller, store the database in the user's LocalAppData
+# folder so it persists across sessions and is writable even when the app is
+# installed in Program Files (which is read-only for non-admin users).
 if getattr(sys, 'frozen', False):
-    DATABASE_PATH = Path(os.path.dirname(sys.executable)) / "labvm.db"
+    _app_data = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 'IT_IAM_HelpDesk_Lab')
+    os.makedirs(_app_data, exist_ok=True)
+    DATABASE_PATH = Path(_app_data) / "labvm.db"
 else:
     DATABASE_PATH = Path(__file__).parent / "labvm.db"
 

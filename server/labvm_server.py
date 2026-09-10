@@ -1042,9 +1042,9 @@ async def browse_proxy(request: Request, url: str = ""):
 import sys as _sys
 import os as _os
 
-# When bundled with PyInstaller, bundled data files (static/, landing.html)
+# When bundled with PyInstaller, bundled data files (static/)
 # are extracted to sys._MEIPASS. When running locally from server/, the
-# static/ and landing.html live in the parent directory.
+# static/ files live in the parent directory.
 if hasattr(_sys, '_MEIPASS'):
     _BUNDLE_DIR = _sys._MEIPASS
 else:
@@ -1054,12 +1054,14 @@ app.mount("/static", StaticFiles(directory=_os.path.join(_BUNDLE_DIR, "static"))
 
 
 @app.get("/")
-async def landing():
-    return FileResponse(_os.path.join(_BUNDLE_DIR, "landing.html"))
+async def app_page():
+    """Serve the desktop VM application directly (no landing page in the executable)."""
+    return FileResponse(_os.path.join(_BUNDLE_DIR, "static", "index.html"))
 
 
 @app.get("/app")
-async def app_page():
+async def app_page_alias():
+    """Alias for / — serves the desktop VM application."""
     return FileResponse(_os.path.join(_BUNDLE_DIR, "static", "index.html"))
 
 
@@ -1453,7 +1455,7 @@ async def startup():
     init_db()
 
 
-def _create_tray_icon():
+def _create_tray_icon(on_open, on_exit):
     """Create a system tray icon for the application."""
     from PIL import Image, ImageDraw
     import pystray
@@ -1469,15 +1471,6 @@ def _create_tray_icon():
     # Gold "L" letter
     draw.line([24, 18, 24, 46], fill=(240, 180, 41, 255), width=5)
     draw.line([24, 46, 42, 46], fill=(240, 180, 41, 255), width=5)
-
-    def on_open(icon, item):
-        import webbrowser
-        webbrowser.open("http://127.0.0.1:8000/")
-
-    def on_exit(icon, item):
-        icon.stop()
-        import os
-        os._exit(0)
 
     icon = pystray.Icon(
         "IT-IAM-HelpDesk-Lab",
@@ -1500,32 +1493,40 @@ def _show_error_dialog(title, message):
         pass
 
 
+def _wait_for_server(timeout=15):
+    """Wait for the uvicorn server to be ready."""
+    import urllib.request
+    import time
+    for _ in range(timeout * 5):
+        try:
+            urllib.request.urlopen("http://127.0.0.1:8000/", timeout=1)
+            return True
+        except Exception:
+            time.sleep(0.2)
+    return False
+
+
 if __name__ == "__main__":
     import sys
     import os
-    import io
     import uvicorn
     import threading
-    import webbrowser
     import time
     import traceback
 
     # When bundled with PyInstaller --windowed, sys.stdout and sys.stderr are None
     # because there is no console. Uvicorn's logging crashes on None.isatty().
-    # Redirect them to a log file so the server can start cleanly.
+    # Redirect them to a log file in LocalAppData so the server can start cleanly.
     if getattr(sys, 'frozen', False):
-        os.chdir(os.path.dirname(sys.executable))
+        _app_data = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 'IT_IAM_HelpDesk_Lab')
+        os.makedirs(_app_data, exist_ok=True)
         if sys.stdout is None or sys.stderr is None:
-            _log_path = os.path.join(os.path.dirname(sys.executable), 'server.log')
+            _log_path = os.path.join(_app_data, 'server.log')
             _log_file = open(_log_path, 'w')
             if sys.stdout is None:
                 sys.stdout = _log_file
             if sys.stderr is None:
                 sys.stderr = _log_file
-
-    def open_browser():
-        time.sleep(2)
-        webbrowser.open("http://127.0.0.1:8000/")
 
     def run_server():
         """Run the uvicorn server in a background thread."""
@@ -1533,16 +1534,14 @@ if __name__ == "__main__":
             init_db()
             uvicorn.run(app, host="127.0.0.1", port=8000, log_level="warning")
         except Exception as e:
-            log_path = os.path.join(
-                os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else '.',
-                'error.log'
-            )
+            _app_data = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 'IT_IAM_HelpDesk_Lab')
+            log_path = os.path.join(_app_data, 'error.log')
             with open(log_path, 'w') as f:
                 f.write(f"Startup error:\n{traceback.format_exc()}\n")
             _show_error_dialog(
                 "IT/IAM Help Desk Lab - Startup Error",
                 f"The application failed to start.\n\nError: {e}\n\n"
-                f"See error.log in the application folder for details."
+                f"See error.log in %LOCALAPPDATA%\\IT_IAM_HelpDesk_Lab for details."
             )
             os._exit(1)
 
@@ -1550,13 +1549,63 @@ if __name__ == "__main__":
     server_thread = threading.Thread(target=run_server, daemon=True)
     server_thread.start()
 
-    # Open browser after a short delay
-    threading.Thread(target=open_browser, daemon=True).start()
+    # Wait for the server to be ready
+    if not _wait_for_server():
+        _show_error_dialog(
+            "IT/IAM Help Desk Lab - Startup Error",
+            "The local server did not start in time.\n\n"
+            "See error.log in the application folder for details."
+        )
+        os._exit(1)
 
-    # Run the system tray icon (blocks until user exits)
+    # Import pywebview and create the native window
+    import webview
+
+    # Tray icon callbacks
+    _tray_icon = [None]  # mutable holder so callbacks can access it
+
+    def on_tray_open(icon, item):
+        """Open a new pywebview window when user clicks 'Open Lab VM' in tray."""
+        try:
+            webview.create_window(
+                "IT / IAM / Help Desk Lab VM",
+                "http://127.0.0.1:8000/",
+                width=1280,
+                height=800,
+                min_size=(900, 600),
+            )
+        except Exception:
+            pass
+
+    def on_tray_exit(icon, item):
+        icon.stop()
+        os._exit(0)
+
+    # Start tray icon in a background thread
+    tray = _create_tray_icon(on_tray_open, on_tray_exit)
+    _tray_icon[0] = tray
+    threading.Thread(target=tray.run, daemon=True).start()
+
+    # Create the main application window (native, not a browser)
+    main_window = webview.create_window(
+        "IT / IAM / Help Desk Lab VM",
+        "http://127.0.0.1:8000/",
+        width=1280,
+        height=800,
+        min_size=(900, 600),
+    )
+
+    # When the main window is closed, exit the app
+    def on_closing():
+        tray.stop()
+
+    main_window.events.closing += on_closing
+
+    # Start the pywebview event loop (blocks until window is closed)
     try:
-        tray = _create_tray_icon()
-        tray.run()
+        webview.start()
     except Exception:
-        # If tray fails (e.g., no display), fall back to keeping server alive
-        server_thread.join()
+        pass
+
+    # If we get here, the window was closed — exit
+    os._exit(0)
