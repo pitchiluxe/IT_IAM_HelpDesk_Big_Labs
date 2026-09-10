@@ -5,9 +5,17 @@ requirements.txt
 requirements-dev.txt
 *.spec
 *.db
+*.exe
 server.log
 server.err
 Erick.jpg
 landing.html
 .gitignore
 .vercelignore
+.env.local
+dist/
+build/
+node_modules/
+.git/
+*.zip
+contact.json
