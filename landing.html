@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT/IAM Help Desk Lab — Training Environment</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0d1117;color:#e6edf3;line-height:1.6}
+a{color:#58a6ff;text-decoration:none}
+a:hover{text-decoration:underline}
+.container{max-width:1100px;margin:0 auto;padding:0 24px}
+
+/* Hero */
+.hero{padding:80px 0 60px;text-align:center;background:linear-gradient(180deg,#0d1117 0%,#161b22 100%);border-bottom:1px solid #30363d}
+.hero h1{font-size:42px;font-weight:700;margin-bottom:16px;background:linear-gradient(90deg,#58a6ff,#79c0ff,#a371f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:18px;color:#8b949e;max-width:640px;margin:0 auto 32px}
+.hero-badges{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:32px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:13px;border:1px solid #30363d;background:#161b22}
+.badge.green{border-color:#238636;color:#7ee787}
+.badge.blue{border-color:#1f6feb;color:#79c0ff}
+.badge.purple{border-color:#8957e5;color:#d2a8ff}
+.btn-download{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;font-size:16px;font-weight:600;background:#238636;color:#fff;border:none;border-radius:8px;cursor:pointer;transition:all .2s}
+.btn-download:hover{background:#2ea043;transform:translateY(-2px);box-shadow:0 8px 24px rgba(35,134,54,.4)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;font-size:15px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:8px;cursor:pointer;margin-left:12px;transition:all .2s}
+.btn-secondary:hover{background:#30363d}
+
+/* Features */
+.features{padding:60px 0}
+.section-title{font-size:28px;font-weight:600;text-align:center;margin-bottom:40px}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+.feature-card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;transition:all .2s}
+.feature-card:hover{border-color:#58a6ff;transform:translateY(-2px)}
+.feature-icon{font-size:32px;margin-bottom:12px}
+.feature-card h3{font-size:18px;margin-bottom:8px;color:#e6edf3}
+.feature-card p{font-size:14px;color:#8b949e}
+
+/* Labs */
+.labs{padding:60px 0;background:#161b22;border-top:1px solid #30363d;border-bottom:1px solid #30363d}
+.lab-item{display:flex;gap:20px;padding:20px 0;border-bottom:1px solid #30363d}
+.lab-item:last-child{border-bottom:none}
+.lab-num{font-size:36px;font-weight:700;color:#58a6ff;min-width:60px}
+.lab-item h3{font-size:18px;margin-bottom:6px}
+.lab-item p{font-size:14px;color:#8b949e}
+.lab-skills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.skill-tag{font-size:11px;padding:2px 8px;border-radius:3px;background:#21262d;border:1px solid #30363d;color:#8b949e}
+
+/* AI section */
+.ai-section{padding:60px 0;text-align:center}
+.ai-section h2{font-size:28px;margin-bottom:16px}
+.ai-section p{font-size:16px;color:#8b949e;max-width:600px;margin:0 auto 24px}
+.ai-features{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+.ai-feature{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 24px;text-align:center}
+.ai-feature .ai-icon{font-size:28px;margin-bottom:8px}
+.ai-feature h4{font-size:14px;margin-bottom:4px}
+.ai-feature p{font-size:12px;color:#8b949e}
+
+/* Install steps */
+.install{padding:60px 0;background:#161b22;border-top:1px solid #30363d}
+.install-steps{max-width:700px;margin:0 auto}
+.step{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid #30363d}
+.step:last-child{border-bottom:none}
+.step-num{width:32px;height:32px;border-radius:50%;background:#238636;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
+.step h4{font-size:15px;margin-bottom:4px}
+.step p{font-size:13px;color:#8b949e}
+.step code{background:#0d1117;padding:2px 8px;border-radius:4px;font-family:monospace;font-size:12px;color:#79c0ff}
+
+/* Footer */
+.footer{padding:40px 0;text-align:center;color:#8b949e;font-size:13px;border-top:1px solid #30363d}
+.footer a{color:#58a6ff}
+
+@media(max-width:768px){
+.hero h1{font-size:30px}
+.hero p{font-size:15px}
+.features-grid{grid-template-columns:1fr}
+.lab-item{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1>IT / IAM / Help Desk Lab</h1>
+    <p>An employer-ready, integrated training environment that simulates a Windows 11 workstation with hands-on labs for identity management, Active Directory, and help desk ticketing — powered by local AI.</p>
+    <div class="hero-badges">
+      <span class="badge green">✓ Windows 11 Desktop Simulation</span>
+      <span class="badge blue">✓ Active Directory</span>
+      <span class="badge purple">✓ Ollama AI Powered</span>
+    </div>
+    <div>
+      <button class="btn-download" onclick="window.open('https://github.com/pitchiluxe/IT_IAM_HelpDesk_Big_Labs/releases/latest','_blank')">
+        ⬇ Download for Windows
+      </button>
+      <button class="btn-secondary" onclick="window.open('https://github.com/pitchiluxe/IT_IAM_HelpDesk_Big_Labs','_blank')">
+        📦 View on GitHub
+      </button>
+    </div>
+    <p style="margin-top:20px;font-size:13px;color:#6e7681">Free · Open Source · Runs locally on your computer</p>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features">
+  <div class="container">
+    <h2 class="section-title">What's Inside</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🖥️</div>
+        <h3>Windows 11 Desktop</h3>
+        <p>A realistic desktop environment with taskbar, start menu, windows, file explorer, settings, and multi-app support — all in your browser.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏢</div>
+        <h3>Active Directory</h3>
+        <p>Full MMC-style ADUC snap-in with OUs, users, groups, computers, domain controllers, right-click menus, and tabbed properties dialogs.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎫</div>
+        <h3>Help Desk Ticketing</h3>
+        <p>ServiceNow-style ticket console with priority colors, SLA timers, search, filter chips, assignment, escalation, and AI-powered ticket review.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <h3>Entra ID Simulation</h3>
+        <p>Microsoft Entra admin center with users, groups, MFA registration, conditional access concepts, and sign-in log troubleshooting.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>PowerShell & CMD</h3>
+        <p>Interactive terminal simulations with real Windows-style commands for user management, file operations, and system administration.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AI Lab Assistant</h3>
+        <p>A built-in chatbot powered by Ollama that answers questions about IT, IAM, Active Directory, and help desk topics in real time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Labs -->
+<section class="labs">
+  <div class="container">
+    <h2 class="section-title">Three Integrated Labs</h2>
+    <div class="lab-item">
+      <div class="lab-num">01</div>
+      <div>
+        <h3>Windows Local Users & Access Management</h3>
+        <p>Create, disable, and manage local user accounts. Configure group-based access, NTFS permissions, and troubleshoot access-denied scenarios.</p>
+        <div class="lab-skills">
+          <span class="skill-tag">Account lifecycle</span>
+          <span class="skill-tag">Group management</span>
+          <span class="skill-tag">NTFS permissions</span>
+          <span class="skill-tag">Least privilege</span>
+          <span class="skill-tag">PowerShell</span>
+        </div>
+      </div>
+    </div>
+    <div class="lab-item">
+      <div class="lab-num">02</div>
+      <div>
+        <h3>Microsoft Entra ID & MFA Troubleshooting</h3>
+        <p>Manage Entra ID users and groups, register MFA, investigate sign-in logs, and troubleshoot authentication failures.</p>
+        <div class="lab-skills">
+          <span class="skill-tag">Identity lifecycle</span>
+          <span class="skill-tag">MFA registration</span>
+          <span class="skill-tag">Conditional Access</span>
+          <span class="skill-tag">Sign-in analysis</span>
+          <span class="skill-tag">Auth troubleshooting</span>
+        </div>
+      </div>
+    </div>
+    <div class="lab-item">
+      <div class="lab-num">03</div>
+      <div>
+        <h3>Help Desk Ticketing Simulation</h3>
+        <p>Work a realistic ticket queue with priority matrices, SLA tracking, assignment, escalation, knowledge base, and AI-generated tickets.</p>
+        <div class="lab-skills">
+          <span class="skill-tag">Incident management</span>
+          <span class="skill-tag">Priority matrix</span>
+          <span class="skill-tag">SLA tracking</span>
+          <span class="skill-tag">Escalation</span>
+          <span class="skill-tag">AI ticket review</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI Section -->
+<section class="ai-section">
+  <div class="container">
+    <h2>Powered by Local AI</h2>
+    <p>The Lab Assistant chatbot and AI ticket features are powered by Ollama, running entirely on your computer. No cloud, no API keys, no data leaving your machine.</p>
+    <div class="ai-features">
+      <div class="ai-feature">
+        <div class="ai-icon">🤖</div>
+        <h4>Lab Assistant</h4>
+        <p>Ask questions about any lab topic</p>
+      </div>
+      <div class="ai-feature">
+        <div class="ai-icon">📝</div>
+        <h4>AI Ticket Generation</h4>
+        <p>Auto-generate realistic help desk tickets</p>
+      </div>
+      <div class="ai-feature">
+        <div class="ai-icon">✅</div>
+        <h4>AI Ticket Review</h4>
+        <p>Deterministic checks + AI feedback</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Install -->
+<section class="install">
+  <div class="container">
+    <h2 class="section-title">Getting Started</h2>
+    <div class="install-steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h4>Download the installer</h4>
+          <p>Click the Download button above to get the latest Windows executable from the GitHub Releases page.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h4>Install Ollama</h4>
+          <p>Download and install Ollama from <a href="https://ollama.com/download" target="_blank">ollama.com/download</a>, then pull a model:</p>
+          <p style="margin-top:6px"><code>ollama pull llama3.2</code></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h4>Run the application</h4>
+          <p>Launch the installed application. It starts a local server and opens the desktop in your browser automatically.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h4>Log in and start learning</h4>
+          <p>Use the credentials shown on the login screen. Open the Lab Roadmap from the desktop to begin the guided labs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <p>IT / IAM / Help Desk Lab — A personal training environment for IT career readiness.</p>
+    <p style="margin-top:8px">Built with FastAPI · SQLite · Ollama · Vanilla JS &nbsp;|&nbsp; <a href="https://github.com/pitchiluxe/IT_IAM_HelpDesk_Big_Labs">GitHub Repository</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab VM - IT/IAM Help Desk Desktop</title>
+<link rel="stylesheet" href="/static/css/desktop.css">
+<link rel="stylesheet" href="/static/css/apps.css">
+<link rel="stylesheet" href="/static/css/accessories.css">
+<link rel="stylesheet" href="/static/css/office.css">
+<link rel="stylesheet" href="/static/css/ad.css">
+<link rel="stylesheet" href="/static/css/roadmap.css">
+</head>
+<body>
+
+<!-- ============ LOCK / LOGIN SCREEN ============ -->
+<div id="lockscreen" class="lockscreen">
+  <div class="lock-time">
+    <div id="lock-clock"></div>
+    <div id="lock-date"></div>
+  </div>
+  <div class="lock-login">
+    <div class="lock-avatar" id="lock-avatar">A</div>
+    <div class="lock-name" id="lock-name">Lab Administrator</div>
+    <form id="login-form">
+      <input type="text" id="login-user" placeholder="Username" autocomplete="username" autofocus>
+      <input type="password" id="login-pass" placeholder="Password" autocomplete="current-password">
+      <button type="submit">Sign in &rarr;</button>
+    </form>
+    <div id="login-error" class="login-error"></div>
+    <div class="lock-hint">Lab accounts: admin / LabAdmin#2026 &nbsp;|&nbsp; helpdesk / HelpDesk#2026 &nbsp;|&nbsp; jdoe / Requester#2026</div>
+  </div>
+</div>
+
+<!-- ============ DESKTOP ============ -->
+<div id="desktop" class="desktop hidden">
+  <div id="desktop-icons" class="desktop-icons"></div>
+  <div id="windows-layer" class="windows-layer"></div>
+
+  <!-- Taskbar -->
+  <div id="taskbar" class="taskbar">
+    <div class="taskbar-left"></div>
+    <div class="taskbar-center">
+      <button class="taskbar-btn start-btn" id="start-btn" title="Start">
+        <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="9" height="9" fill="#0a84ff"/><rect x="13" y="2" width="9" height="9" fill="#0a84ff"/><rect x="2" y="13" width="9" height="9" fill="#0a84ff"/><rect x="13" y="13" width="9" height="9" fill="#0a84ff"/></svg>
+      </button>
+      <div id="taskbar-apps" class="taskbar-apps"></div>
+    </div>
+    <div class="taskbar-right">
+      <div class="tray">
+        <span id="tray-clock" class="tray-clock"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start Menu -->
+  <div id="start-menu" class="start-menu hidden">
+    <div class="start-search"><input type="text" placeholder="Search for apps and settings" id="start-search"></div>
+    <div class="start-section-title">Pinned</div>
+    <div class="start-pinned" id="start-pinned"></div>
+    <div class="start-section-title">All apps</div>
+    <div class="start-allapps" id="start-allapps"></div>
+    <div class="start-footer">
+      <div class="start-user" id="start-user">
+        <div class="start-user-avatar" id="start-user-avatar">A</div>
+        <span id="start-user-name">Lab Administrator</span>
+      </div>
+      <button class="start-power" id="start-power" title="Sign out">⏻</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Error diagnostics + clock fallback
+window.onerror = function(msg, url, line, col, err) {
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#c0392b;color:#fff;padding:8px;font:13px monospace;z-index:99999';
+  d.textContent = 'JS Error: ' + msg + ' (' + (url||'') + ':' + line + ')';
+  document.body.appendChild(d);
+};
+// Clock fallback (in case module fails)
+function tickClock(){
+  var n=new Date();
+  var t=n.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  var d=n.toLocaleDateString([],{month:'numeric',day:'numeric',year:'numeric'});
+  var lc=document.getElementById('lock-clock'); if(lc) lc.textContent=t;
+  var ld=document.getElementById('lock-date'); if(ld) ld.textContent=n.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+  var tc=document.getElementById('tray-clock'); if(tc) tc.innerHTML=t+'<br>'+d;
+}
+setInterval(tickClock,1000); tickClock();
+
+// Fallback login handler (works even if module fails)
+var _loginDone = false;
+document.getElementById('login-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  if(_loginDone) return;
+  _loginDone = true;
+  var u=document.getElementById('login-user').value.trim();
+  var p=document.getElementById('login-pass').value;
+  var err=document.getElementById('login-error');
+  err.textContent='Signing in...';
+  fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p}),credentials:'same-origin'})
+    .then(function(r){ if(!r.ok) throw new Error('Invalid credentials'); return r.json(); })
+    .then(function(res){
+      err.textContent='';
+      document.getElementById('lockscreen').classList.add('hidden');
+      document.getElementById('desktop').classList.remove('hidden');
+      document.getElementById('start-user-name').textContent=res.user.full_name;
+      document.getElementById('start-user-avatar').textContent=(res.user.full_name||'U')[0];
+      document.getElementById('lock-avatar').textContent=(res.user.full_name||'U')[0];
+      document.getElementById('lock-name').textContent=res.user.full_name;
+      if(window.LabVM && window.LabVM.enterDesktop){
+        window.LabVM.enterDesktop(res.user);
+      }
+      buildFallbackIcons();
+    })
+    .catch(function(ex){ err.textContent='Invalid credentials. Try the accounts shown below.'; _loginDone=false; });
+});
+
+function loadModule(){
+  var s=document.createElement('script');
+  s.type='module';
+  s.src='/static/js/main.js';
+  document.head.appendChild(s);
+}
+
+// Build desktop icons as fallback (in case module fails to load)
+var FALLBACK_APPS = [
+  {id:'settings', title:'Settings', icon:'⚙️'},
+  {id:'calendar', title:'Calendar', icon:'📅'},
+  {id:'stickies', title:'Sticky Notes', icon:'📝'},
+  {id:'epicpen', title:'Epic Pen', icon:'✏️'},
+  {id:'notepad', title:'Notepad++', icon:'📃'},
+  {id:'chrome', title:'Chrome', icon:'🌐'},
+  {id:'calc', title:'Calculator', icon:'🧮'},
+  {id:'word', title:'Microsoft Word', icon:'📄'},
+  {id:'excel', title:'Microsoft Excel', icon:'📊'},
+  {id:'ppt', title:'PowerPoint', icon:'📽️'},
+  {id:'aduc', title:'Active Directory', icon:'🏢'},
+  {id:'roadmap', title:'Lab Roadmap', icon:'🗺️'},
+  {id:'lusrmgr', title:'Local Users and Groups', icon:'👥'},
+  {id:'explorer', title:'File Explorer', icon:'📁'},
+  {id:'powershell', title:'PowerShell', icon:'⚡'},
+  {id:'cmd', title:'Command Prompt', icon:'🖥️'},
+  {id:'entra', title:'Entra ID Admin Center', icon:'🔐'},
+  {id:'signins', title:'Sign-in Logs', icon:'📜'},
+  {id:'servicedesk', title:'Service Desk Console', icon:'🎫'},
+  {id:'kb', title:'Knowledge Base', icon:'📚'},
+  {id:'reports', title:'Reports Dashboard', icon:'📊'}
+];
+function buildFallbackIcons(){
+  var c=document.getElementById('desktop-icons');
+  if(!c) return;
+  c.innerHTML='';
+  var iconH=90;
+  FALLBACK_APPS.forEach(function(app, idx){
+    var el=document.createElement('div');
+    el.className='desktop-icon';
+    var col=Math.floor(idx/7);
+    var row=idx%7;
+    el.style.left=(16+col*92)+'px';
+    el.style.top=(16+row*(iconH+4))+'px';
+    el.innerHTML='<div class="ic">'+app.icon+'</div><div class="lbl">'+app.title+'</div>';
+    el.addEventListener('click', function(e){
+      e.stopPropagation();
+      document.querySelectorAll('.desktop-icon').forEach(function(i){i.classList.remove('selected');});
+      el.classList.add('selected');
+    });
+    el.addEventListener('dblclick', function(e){ e.stopPropagation(); openFallbackApp(app); });
+    c.appendChild(el);
+  });
+}
+function openFallbackApp(app){
+  if(window.LabVM && window.LabVM.APPS){
+    var realApp = window.LabVM.APPS.find(function(a){return a.id === app.id;});
+    if(realApp && window.LabVM.launch){ window.LabVM.launch(realApp); return; }
+  }
+  if(window.LabVM && window.LabVM.launch){
+    window.LabVM.launch(app);
+  } else {
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;top:50px;left:50px;width:600px;height:400px;background:#fff;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.4);z-index:100;padding:20px;font:14px sans-serif';
+    d.innerHTML='<div style="font-weight:600;margin-bottom:10px">'+app.icon+' '+app.title+'</div><div style="color:#888">Module still loading... please wait and try again in a moment.</div><button onclick="this.parentElement.remove()" style="margin-top:14px;padding:6px 14px">Close</button>';
+    document.getElementById('windows-layer').appendChild(d);
+    if(!window.LabVM){ loadModule(); }
+  }
+}
+</script>
+<script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

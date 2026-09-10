@@ -1,0 +1,428 @@
+import { toast } from '../wm.js';
+import { modal, esc } from './lab1.js';
+
+// Wallpaper presets (CSS gradients)
+const WALLPAPERS = [
+  { id: 'default', name: 'Windows Bloom', css: 'linear-gradient(135deg,#0d4a8a 0%,#0a84ff 40%,#1a5fb4 70%,#0a2e6e 100%)', thumb: 'linear-gradient(135deg,#0d4a8a,#0a84ff,#1a5fb4,#0a2e6e)' },
+  { id: 'dark', name: 'Dark Mode', css: '#1a1a2e', thumb: 'linear-gradient(135deg,#1a1a2e,#16213e)' },
+  { id: 'sunset', name: 'Sunset', css: 'linear-gradient(135deg,#2c1810 0%,#8b3a0e 30%,#e67e22 60%,#f39c12 100%)', thumb: 'linear-gradient(135deg,#2c1810,#8b3a0e,#e67e22,#f39c12)' },
+  { id: 'forest', name: 'Forest', css: 'linear-gradient(135deg,#0b3d0b 0%,#1a6b1a 40%,#2ecc71 80%,#a8e6a8 100%)', thumb: 'linear-gradient(135deg,#0b3d0b,#1a6b1a,#2ecc71,#a8e6a8)' },
+  { id: 'ocean', name: 'Ocean', css: 'linear-gradient(135deg,#001f3f 0%,#0074d9 40%,#39cccc 80%,#7fdbff 100%)', thumb: 'linear-gradient(135deg,#001f3f,#0074d9,#39cccc,#7fdbff)' },
+  { id: 'purple', name: 'Aurora', css: 'linear-gradient(135deg,#1a0033 0%,#4a0080 30%,#9b59b6 60%,#e84393 100%)', thumb: 'linear-gradient(135deg,#1a0033,#4a0080,#9b59b6,#e84393)' },
+  { id: 'mountain', name: 'Mountain', css: 'linear-gradient(180deg,#2c3e50 0%,#34495e 40%,#7f8c8d 70%,#bdc3c7 100%)', thumb: 'linear-gradient(180deg,#2c3e50,#34495e,#7f8c8d,#bdc3c7)' },
+  { id: 'fire', name: 'Ember', css: 'linear-gradient(135deg,#1a0000 0%,#4a0000 30%,#c0392b 60%,#e74c3c 100%)', thumb: 'linear-gradient(135deg,#1a0000,#4a0000,#c0392b,#e74c3c)' },
+  { id: 'minimal', name: 'Minimal Gray', css: 'linear-gradient(135deg,#2d2d2d 0%,#3d3d3d 50%,#4d4d4d 100%)', thumb: 'linear-gradient(135deg,#2d2d2d,#3d3d3d,#4d4d4d)' },
+];
+
+const LOCKSCREEN_WALLPAPERS = [
+  { id: 'lock-default', name: 'Windows Blue', css: 'linear-gradient(135deg,#0a2e6e 0%,#0a84ff 50%,#003a70 100%)', thumb: 'linear-gradient(135deg,#0a2e6e,#0a84ff,#003a70)' },
+  { id: 'lock-dark', name: 'Midnight', css: 'linear-gradient(180deg,#0a0a1a 0%,#1a1a3a 50%,#0a0a1a 100%)', thumb: 'linear-gradient(180deg,#0a0a1a,#1a1a3a,#0a0a1a)' },
+  { id: 'lock-sunset', name: 'Sunset Lock', css: 'linear-gradient(135deg,#2c1810 0%,#8b3a0e 50%,#e67e22 100%)', thumb: 'linear-gradient(135deg,#2c1810,#8b3a0e,#e67e22)' },
+  { id: 'lock-forest', name: 'Forest Lock', css: 'linear-gradient(135deg,#0b3d0b 0%,#1a6b1a 50%,#2ecc71 100%)', thumb: 'linear-gradient(135deg,#0b3d0b,#1a6b1a,#2ecc71)' },
+  { id: 'lock-purple', name: 'Aurora Lock', css: 'linear-gradient(135deg,#1a0033 0%,#4a0080 50%,#9b59b6 100%)', thumb: 'linear-gradient(135deg,#1a0033,#4a0080,#9b59b6)' },
+];
+
+const ACCENT_COLORS = [
+  { name: 'Blue', value: '#0a84ff' },
+  { name: 'Purple', value: '#9b59b6' },
+  { name: 'Green', value: '#2ecc71' },
+  { name: 'Orange', value: '#e67e22' },
+  { name: 'Red', value: '#e74c3c' },
+  { name: 'Teal', value: '#1abc9c' },
+  { name: 'Pink', value: '#e84393' },
+  { name: 'Indigo', value: '#5b6dc8' },
+];
+
+const THEMES = [
+  { id: 'light', name: 'Light', taskbarBg: 'rgba(32,32,32,.78)', winBg: '#f3f3f3', winBorder: '#e5e5e5', text: '#1b1b1b' },
+  { id: 'dark', name: 'Dark', taskbarBg: 'rgba(20,20,20,.85)', winBg: '#2b2b2b', winBorder: '#3a3a3a', text: '#e0e0e0' },
+];
+
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem('labvm-settings') || '{}'); }
+  catch { return {}; }
+}
+
+function saveSettings(s) {
+  localStorage.setItem('labvm-settings', JSON.stringify(s));
+}
+
+export function applySettings() {
+  const s = loadSettings();
+  const desktop = document.getElementById('desktop');
+  const lockscreen = document.getElementById('lockscreen');
+  const taskbar = document.getElementById('taskbar');
+
+  // avatar and username
+  if (s.avatar) {
+    document.querySelectorAll('#lock-avatar, #start-user-avatar').forEach(el => {
+      el.style.background = 'url(' + s.avatar + ') center/cover';
+      el.textContent = '';
+    });
+  }
+  if (s.userName) {
+    document.querySelectorAll('#lock-name, #start-user-name').forEach(el => el.textContent = s.userName);
+    if (!s.avatar) document.querySelectorAll('#lock-avatar, #start-user-avatar').forEach(el => el.textContent = (s.userName[0]||'U'));
+  }
+
+  // wallpaper
+  const wp = WALLPAPERS.find(w => w.id === s.wallpaper) || WALLPAPERS[0];
+  if (desktop) desktop.style.background = wp.css;
+
+  // lockscreen wallpaper
+  const lwp = LOCKSCREEN_WALLPAPERS.find(w => w.id === s.lockwallpaper) || LOCKSCREEN_WALLPAPERS[0];
+  if (lockscreen) lockscreen.style.background = lwp.css;
+
+  // accent color
+  if (s.accent) {
+    document.documentElement.style.setProperty('--accent', s.accent);
+    document.documentElement.style.setProperty('--accent-2', s.accent);
+  }
+
+  // theme (light/dark)
+  const theme = THEMES.find(t => t.id === s.theme) || THEMES[0];
+  document.documentElement.style.setProperty('--win-bg', theme.winBg);
+  document.documentElement.style.setProperty('--win-border', theme.winBorder);
+  document.documentElement.style.setProperty('--text', theme.text);
+  if (taskbar) taskbar.style.background = theme.taskbarBg;
+
+  // taskbar position
+  if (s.taskbarPos === 'left') {
+    taskbar.classList.add('left');
+  } else {
+    taskbar.classList.remove('left');
+  }
+}
+
+export function openSettings(body) {
+  let s = loadSettings();
+  let view = 'personalization';
+
+  body.innerHTML = `
+    <div class="app" style="height:100%">
+      <div class="portal">
+        <div class="portal-nav" style="background:#f0f0f0;color:#333">
+          <div class="nav-brand" style="color:#333;border-bottom-color:#ddd">⚙️ Settings</div>
+          <div class="nav-item active" data-v="personalization" style="color:#333">🎨 Personalization</div>
+          <div class="nav-item" data-v="account" style="color:#333">👤 Account</div>
+          <div class="nav-item" data-v="theme" style="color:#333">🌓 Theme</div>
+          <div class="nav-item" data-v="wallpaper" style="color:#333">🖼️ Wallpaper</div>
+          <div class="nav-item" data-v="lockscreen" style="color:#333">🔒 Lock Screen</div>
+          <div class="nav-item" data-v="accent" style="color:#333">🎯 Accent Color</div>
+          <div class="nav-item" data-v="taskbar" style="color:#333">📊 Taskbar</div>
+          <div class="nav-item" data-v="about" style="color:#333">ℹ️ About</div>
+        </div>
+        <div class="portal-main">
+          <div class="portal-header"><h2 id="set-title">Personalization</h2></div>
+          <div class="portal-content" id="set-content"></div>
+        </div>
+      </div>
+    </div>`;
+
+  const nav = body.querySelector('.portal-nav');
+  nav.addEventListener('click', e => {
+    const it = e.target.closest('.nav-item'); if (!it) return;
+    view = it.dataset.v;
+    nav.querySelectorAll('.nav-item').forEach(x => x.classList.toggle('active', x === it));
+    render();
+  });
+
+  function render() {
+    const c = body.querySelector('#set-content');
+    const titles = {
+      personalization: 'Personalization', account: 'Account', theme: 'Theme', wallpaper: 'Wallpaper',
+      lockscreen: 'Lock Screen', accent: 'Accent Color', taskbar: 'Taskbar', about: 'About'
+    };
+    body.querySelector('#set-title').textContent = titles[view];
+    if (view === 'personalization') renderPersonalization(c);
+    else if (view === 'account') renderAccount(c);
+    else if (view === 'theme') renderTheme(c);
+    else if (view === 'wallpaper') renderWallpaper(c);
+    else if (view === 'lockscreen') renderLockscreen(c);
+    else if (view === 'accent') renderAccent(c);
+    else if (view === 'taskbar') renderTaskbar(c);
+    else if (view === 'about') renderAbout(c);
+  }
+
+  function renderAccount(c) {
+    const avatar = s.avatar || '';
+    const userName = s.userName || 'Lab Administrator';
+    c.innerHTML = `
+      <div class="report-card" style="max-width:500px">
+        <h3>Profile Picture</h3>
+        <div style="display:flex;gap:20px;align-items:center;margin-top:12px">
+          <div id="acc-avatar-preview" style="width:120px;height:120px;border-radius:50%;background:${avatar ? 'url(' + avatar + ') center/cover' : 'linear-gradient(135deg,#0a84ff,#003a70)'};display:flex;align-items:center;justify-content:center;font-size:48px;color:#fff;border:3px solid #e5e5e5">${avatar ? '' : (userName[0]||'U')}</div>
+          <div>
+            <input type="file" id="acc-avatar-file" accept="image/*" style="display:none">
+            <button class="btn btn-primary btn-sm" id="acc-upload">Upload picture</button>
+            <button class="btn btn-sm" id="acc-remove" style="margin-top:6px;display:block">Remove picture</button>
+            <div class="muted" style="margin-top:8px;font-size:12px">JPG, PNG, or GIF. Max 2MB. Picture is stored locally in your browser.</div>
+          </div>
+        </div>
+      </div>
+      <div class="report-card" style="max-width:500px;margin-top:14px">
+        <h3>Account Info</h3>
+        <div class="form-row" style="margin-top:10px"><label>Display name</label><input class="field" id="acc-name" value="${esc(userName)}"></div>
+        <button class="btn btn-primary btn-sm" id="acc-save-name" style="margin-top:8px">Save name</button>
+      </div>
+      <div class="report-card" style="max-width:500px;margin-top:14px">
+        <h3>Sign-in</h3>
+        <div style="margin-top:10px;font-size:13px;line-height:1.8">
+          <div><b>Account type:</b> <span id="acc-type">Loading...</span></div>
+          <div><b>Email:</b> <span id="acc-email">Loading...</span></div>
+        </div>
+        <button class="btn btn-sm" id="acc-signout" style="margin-top:10px">Sign out</button>
+      </div>
+      <div class="report-card" style="max-width:500px;margin-top:14px">
+        <h3>Change Password</h3>
+        <div class="form-row" style="margin-top:10px"><label>Current password</label><input class="field" id="acc-old-pwd" type="password" placeholder="Enter current password"></div>
+        <div class="form-row" style="margin-top:8px"><label>New password</label><input class="field" id="acc-new-pwd" type="password" placeholder="Enter new password (min 6 chars)"></div>
+        <div class="form-row" style="margin-top:8px"><label>Confirm password</label><input class="field" id="acc-confirm-pwd" type="password" placeholder="Re-enter new password"></div>
+        <button class="btn btn-primary btn-sm" id="acc-change-pwd" style="margin-top:10px">Change password</button>
+        <div id="acc-pwd-msg" style="margin-top:8px;font-size:13px"></div>
+      </div>`;
+
+    const fileInput = c.querySelector('#acc-avatar-file');
+    c.querySelector('#acc-upload').onclick = () => fileInput.click();
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { toast('File too large (max 2MB)'); return; }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        s.avatar = ev.target.result; saveSettings(s); applySettings();
+        c.querySelector('#acc-avatar-preview').style.background = 'url(' + ev.target.result + ') center/cover';
+        c.querySelector('#acc-avatar-preview').textContent = '';
+        // apply to all avatar locations
+        document.querySelectorAll('#lock-avatar, #start-user-avatar').forEach(el => {
+          el.style.background = 'url(' + ev.target.result + ') center/cover';
+          el.textContent = '';
+        });
+        toast('Profile picture updated');
+      };
+      reader.readAsDataURL(file);
+    };
+    c.querySelector('#acc-remove').onclick = () => {
+      s.avatar = ''; saveSettings(s); applySettings();
+      c.querySelector('#acc-avatar-preview').style.background = 'linear-gradient(135deg,#0a84ff,#003a70)';
+      c.querySelector('#acc-avatar-preview').textContent = (userName[0]||'U');
+      document.querySelectorAll('#lock-avatar, #start-user-avatar').forEach(el => {
+        el.style.background = '';
+        el.textContent = (userName[0]||'U');
+      });
+      toast('Profile picture removed');
+    };
+    c.querySelector('#acc-save-name').onclick = () => {
+      s.userName = c.querySelector('#acc-name').value; saveSettings(s);
+      document.querySelectorAll('#lock-name, #start-user-name').forEach(el => el.textContent = s.userName);
+      if (!s.avatar) document.querySelectorAll('#lock-avatar, #start-user-avatar').forEach(el => el.textContent = (s.userName[0]||'U'));
+      toast('Display name saved');
+    };
+    c.querySelector('#acc-signout').onclick = async () => {
+      try { await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }); } catch {}
+      location.reload();
+    };
+    c.querySelector('#acc-change-pwd').onclick = async () => {
+      const oldP = c.querySelector('#acc-old-pwd').value;
+      const newP = c.querySelector('#acc-new-pwd').value;
+      const conP = c.querySelector('#acc-confirm-pwd').value;
+      const msg = c.querySelector('#acc-pwd-msg');
+      if (!oldP || !newP) { msg.style.color = '#e74c3c'; msg.textContent = 'Please fill in all fields.'; return; }
+      if (newP.length < 6) { msg.style.color = '#e74c3c'; msg.textContent = 'New password must be at least 6 characters.'; return; }
+      if (newP !== conP) { msg.style.color = '#e74c3c'; msg.textContent = 'Passwords do not match.'; return; }
+      msg.style.color = '#666'; msg.textContent = 'Changing password...';
+      try {
+        const r = await fetch('/api/change-password', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ old_password: oldP, new_password: newP }),
+          credentials: 'same-origin'
+        });
+        const res = await r.json();
+        if (r.ok) {
+          msg.style.color = '#2ecc71'; msg.textContent = 'Password changed successfully!';
+          c.querySelector('#acc-old-pwd').value = ''; c.querySelector('#acc-new-pwd').value = ''; c.querySelector('#acc-confirm-pwd').value = '';
+          toast('Password changed');
+        } else {
+          msg.style.color = '#e74c3c'; msg.textContent = res.detail || 'Failed to change password.';
+        }
+      } catch (e) {
+        msg.style.color = '#e74c3c'; msg.textContent = 'Error: ' + e.message;
+      }
+    };
+    // load account info
+    fetch('/api/me', { credentials: 'same-origin' }).then(r => r.json()).then(u => {
+      c.querySelector('#acc-type').textContent = u.role;
+      c.querySelector('#acc-email').textContent = u.username + '@lab.local';
+    }).catch(() => {});
+  }
+
+  function renderPersonalization(c) {
+    const currentWp = WALLPAPERS.find(w => w.id === s.wallpaper) || WALLPAPERS[0];
+    const currentTheme = THEMES.find(t => t.id === s.theme) || THEMES[0];
+    const currentAccent = ACCENT_COLORS.find(a => a.value === s.accent) || ACCENT_COLORS[0];
+    c.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="report-card">
+          <h3>Current Wallpaper</h3>
+          <div style="height:100px;border-radius:8px;background:${currentWp.css};margin-top:8px"></div>
+          <div class="muted" style="margin-top:6px">${esc(currentWp.name)}</div>
+          <button class="btn btn-sm btn-primary" id="p-go-wp" style="margin-top:8px">Change wallpaper</button>
+        </div>
+        <div class="report-card">
+          <h3>Current Theme</h3>
+          <div style="height:100px;border-radius:8px;background:${currentTheme.id==='dark'?'#2b2b2b':'#f3f3f3'};margin-top:8px;display:flex;align-items:center;justify-content:center;font-size:28px;color:${currentTheme.id==='dark'?'#fff':'#333'}">${currentTheme.id==='dark'?'🌙':'☀️'}</div>
+          <div class="muted" style="margin-top:6px">${esc(currentTheme.name)}</div>
+          <button class="btn btn-sm btn-primary" id="p-go-theme" style="margin-top:8px">Change theme</button>
+        </div>
+        <div class="report-card">
+          <h3>Accent Color</h3>
+          <div style="height:100px;border-radius:8px;background:${currentAccent.value};margin-top:8px"></div>
+          <div class="muted" style="margin-top:6px">${esc(currentAccent.name)}</div>
+          <button class="btn btn-sm btn-primary" id="p-go-accent" style="margin-top:8px">Change accent</button>
+        </div>
+        <div class="report-card">
+          <h3>Lock Screen</h3>
+          <div style="height:100px;border-radius:8px;background:${(LOCKSCREEN_WALLPAPERS.find(w=>w.id===s.lockwallpaper)||LOCKSCREEN_WALLPAPERS[0]).css};margin-top:8px"></div>
+          <div class="muted" style="margin-top:6px">${esc((LOCKSCREEN_WALLPAPERS.find(w=>w.id===s.lockwallpaper)||LOCKSCREEN_WALLPAPERS[0]).name)}</div>
+          <button class="btn btn-sm btn-primary" id="p-go-lock" style="margin-top:8px">Change lock screen</button>
+        </div>
+      </div>`;
+    c.querySelector('#p-go-wp').onclick = () => { view='wallpaper'; nav.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.v==='wallpaper')); render(); };
+    c.querySelector('#p-go-theme').onclick = () => { view='theme'; nav.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.v==='theme')); render(); };
+    c.querySelector('#p-go-accent').onclick = () => { view='accent'; nav.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.v==='accent')); render(); };
+    c.querySelector('#p-go-lock').onclick = () => { view='lockscreen'; nav.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.v==='lockscreen')); render(); };
+  }
+
+  function renderTheme(c) {
+    c.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      ${THEMES.map(t => `
+        <div class="report-card" style="cursor:pointer;border:${(s.theme||'light')===t.id?'2px solid var(--accent)':'1px solid #e5e5e5'}" data-theme="${t.id}">
+          <h3>${t.id==='dark'?'🌙':'☀️'} ${esc(t.name)}</h3>
+          <div style="height:120px;border-radius:8px;background:${t.id==='dark'?'#2b2b2b':'#f3f3f3'};margin-top:8px;display:flex;flex-direction:column;justify-content:flex-end;padding:10px">
+            <div style="background:${t.id==='dark'?'#3a3a3a':'#e5e5e5'};height:30px;border-radius:4px;margin-bottom:6px"></div>
+            <div style="background:${t.id==='dark'?'#1a1a1a':'#d0d0d0'};height:20px;border-radius:4px"></div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+    c.querySelectorAll('[data-theme]').forEach(el => el.onclick = () => {
+      s.theme = el.dataset.theme; saveSettings(s); applySettings(); toast('Theme changed to ' + el.dataset.theme); render();
+    });
+  }
+
+  function renderWallpaper(c) {
+    c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      ${WALLPAPERS.map(w => `
+        <div style="cursor:pointer;border:${(s.wallpaper||'default')===w.id?'3px solid var(--accent)':'1px solid #e5e5e5'};border-radius:8px;overflow:hidden" data-wp="${w.id}">
+          <div style="height:100px;background:${w.css}"></div>
+          <div style="padding:8px;font-size:12px;text-align:center">${esc(w.name)}</div>
+        </div>`).join('')}
+    </div>`;
+    c.querySelectorAll('[data-wp]').forEach(el => el.onclick = () => {
+      s.wallpaper = el.dataset.wp; saveSettings(s); applySettings(); toast('Wallpaper changed'); render();
+    });
+  }
+
+  function renderLockscreen(c) {
+    c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      ${LOCKSCREEN_WALLPAPERS.map(w => `
+        <div style="cursor:pointer;border:${(s.lockwallpaper||'lock-default')===w.id?'3px solid var(--accent)':'1px solid #e5e5e5'};border-radius:8px;overflow:hidden" data-lwp="${w.id}">
+          <div style="height:100px;background:${w.css}"></div>
+          <div style="padding:8px;font-size:12px;text-align:center">${esc(w.name)}</div>
+        </div>`).join('')}
+    </div>
+    <div style="margin-top:16px;padding:14px;background:#fff;border-radius:8px;border:1px solid #e5e5e5">
+      <h3 style="font-size:14px;margin-bottom:8px">Lock Screen Preview</h3>
+      <div id="lock-preview" style="height:200px;border-radius:8px;background:${(LOCKSCREEN_WALLPAPERS.find(w=>w.id===s.lockwallpaper)||LOCKSCREEN_WALLPAPERS[0]).css};display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff">
+        <div style="font-size:48px;font-weight:300">12:00</div>
+        <div style="font-size:18px">Wednesday, September 9</div>
+        <div style="margin-top:20px;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:28px">A</div>
+        <div style="margin-top:8px">Lab Administrator</div>
+      </div>
+    </div>`;
+    c.querySelectorAll('[data-lwp]').forEach(el => el.onclick = () => {
+      s.lockwallpaper = el.dataset.lwp; saveSettings(s); applySettings(); toast('Lock screen wallpaper changed'); render();
+    });
+  }
+
+  function renderAccent(c) {
+    c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+      ${ACCENT_COLORS.map(a => `
+        <div style="cursor:pointer;text-align:center" data-accent="${a.value}">
+          <div style="height:80px;border-radius:8px;background:${a.value};border:${(s.accent||'#0a84ff')===a.value?'3px solid #333':'1px solid #e5e5e5'}"></div>
+          <div style="padding:8px;font-size:12px">${esc(a.name)}</div>
+        </div>`).join('')}
+    </div>`;
+    c.querySelectorAll('[data-accent]').forEach(el => el.onclick = () => {
+      s.accent = el.dataset.accent; saveSettings(s); applySettings(); toast('Accent color changed'); render();
+    });
+  }
+
+  function renderTaskbar(c) {
+    c.innerHTML = `
+      <div class="report-card">
+        <h3>Taskbar Position</h3>
+        <div style="margin-top:10px;display:flex;gap:12px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;border:1px solid #e5e5e5;border-radius:8px">
+            <input type="radio" name="tbpos" value="bottom" ${s.taskbarPos!=='left'?'checked':''}> Bottom
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;border:1px solid #e5e5e5;border-radius:8px">
+            <input type="radio" name="tbpos" value="left" ${s.taskbarPos==='left'?'checked':''}> Left
+          </label>
+        </div>
+      </div>
+      <div class="report-card" style="margin-top:14px">
+        <h3>Taskbar Behavior</h3>
+        <div style="margin-top:10px">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 0">
+            <input type="checkbox" id="tb-autohide" ${s.autohide?'checked':''}> Auto-hide taskbar
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 0">
+            <input type="checkbox" id="tb-showclock" ${s.showClock!==false?'checked':''}> Show clock
+          </label>
+        </div>
+      </div>`;
+    c.querySelectorAll('input[name="tbpos"]').forEach(r => r.onchange = () => {
+      s.taskbarPos = r.value; saveSettings(s); applySettings(); toast('Taskbar position changed');
+    });
+    c.querySelector('#tb-autohide').onchange = (e) => {
+      s.autohide = e.target.checked; saveSettings(s);
+      const tb = document.getElementById('taskbar');
+      if (s.autohide) { tb.style.transform = 'translateY(100%)'; tb.style.transition = 'transform .2s'; tb.onmouseenter = () => tb.style.transform = 'translateY(0)'; tb.onmouseleave = () => tb.style.transform = 'translateY(100%)'; }
+      else { tb.style.transform = ''; tb.onmouseenter = null; tb.onmouseleave = null; }
+      toast('Auto-hide ' + (e.target.checked ? 'enabled' : 'disabled'));
+    };
+    c.querySelector('#tb-showclock').onchange = (e) => {
+      s.showClock = e.target.checked; saveSettings(s);
+      document.getElementById('tray-clock').style.display = e.target.checked ? '' : 'none';
+      toast('Clock ' + (e.target.checked ? 'shown' : 'hidden'));
+    };
+  }
+
+  function renderAbout(c) {
+    c.innerHTML = `
+      <div class="report-card">
+        <h3>Lab VM — IT/IAM Help Desk Desktop</h3>
+        <div style="margin-top:10px;font-size:13px;line-height:1.8">
+          <div><b>Version:</b> 1.0.0</div>
+          <div><b>Edition:</b> Lab VM Professional</div>
+          <div><b>OS:</b> Web-based Windows 11 Simulation</div>
+          <div><b>Processor:</b> Virtual (Browser Engine)</div>
+          <div><b>Memory:</b> Browser Allocated</div>
+          <div><b>Storage:</b> SQLite (labvm.db)</div>
+        </div>
+      </div>
+      <div class="report-card" style="margin-top:14px">
+        <h3>Included Labs</h3>
+        <div style="margin-top:8px;font-size:13px;line-height:1.8">
+          <div>📋 <b>Lab 1:</b> Windows Local Users, Groups & NTFS Permissions</div>
+          <div>🔐 <b>Lab 2:</b> Microsoft Entra ID, MFA & Conditional Access</div>
+          <div>🎫 <b>Lab 3:</b> Help Desk Ticketing, Knowledge Base & Reports</div>
+        </div>
+      </div>
+      <div class="report-card" style="margin-top:14px">
+        <h3>Technologies</h3>
+        <div style="margin-top:8px;font-size:13px">FastAPI · SQLite · Vanilla JS · CSS3</div>
+      </div>`;
+  }
+
+  render();
+}

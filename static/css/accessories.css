@@ -1,0 +1,60 @@
+/* ===== Calendar ===== */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dow{text-align:center;font-weight:600;padding:6px;font-size:12px;color:#666;background:#f5f5f5;border-radius:4px}
+.cal-cell{min-height:80px;border:1px solid #eee;border-radius:4px;padding:4px;font-size:12px;cursor:pointer;position:relative}
+.cal-cell:hover{background:#f7faff;border-color:#ccd}
+.cal-cell.empty{background:#fafafa;cursor:default}
+.cal-cell.empty:hover{background:#fafafa}
+.cal-today{background:#eef4ff;border-color:var(--accent)}
+.cal-day{font-weight:600;margin-bottom:2px}
+.cal-event{background:var(--accent);color:#fff;padding:1px 4px;border-radius:3px;font-size:10px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-event-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:13px}
+.cal-event-date{font-weight:600;color:var(--accent);min-width:100px}
+.cal-event-row .btn{margin-left:auto}
+
+/* ===== Sticky Notes ===== */
+.sticky-note{width:220px;min-height:200px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden}
+.sticky-toolbar{display:flex;justify-content:space-between;padding:4px 6px;background:rgba(0,0,0,.05)}
+.sticky-text{flex:1;border:none;resize:none;background:transparent;padding:10px;font-size:14px;font-family:"Segoe Print","Comic Sans MS",cursive;outline:none;line-height:1.5}
+.sticky-color{border:1px solid #ccc;border-radius:3px;padding:2px;font-size:12px;cursor:pointer}
+
+/* ===== Epic Pen ===== */
+.ep-color{width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.ep-color.selected{border:3px solid #333;transform:scale(1.1)}
+
+/* ===== Notepad++ ===== */
+.np-tabs{display:flex;background:#f0f0f0;border-bottom:1px solid #ddd;overflow-x:auto}
+.np-tab{padding:4px 10px;cursor:pointer;font-size:12px;border-right:1px solid #ddd;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.np-tab.active{background:#fff;font-weight:500}
+.np-tab:hover{background:#e8e8e8}
+.np-close{border:none;background:none;cursor:pointer;font-size:13px;color:#999;padding:0 2px}
+.np-close:hover{color:#e74c3c}
+.np-editor{flex:1;border:none;outline:none;padding:8px;font-family:"Cascadia Code","Consolas",monospace;font-size:13px;line-height:1.5;resize:none;width:100%;background:#fff;color:#1b1b1b}
+
+/* ===== Chrome ===== */
+.chrome-tabs{display:flex;background:#d9d9d9;padding:3px 3px 0 3px;gap:2px;align-items:flex-end}
+.chrome-tab{background:#e8e8e8;padding:5px 10px;border-radius:6px 6px 0 0;cursor:pointer;font-size:11px;display:flex;align-items:center;gap:6px;max-width:180px}
+.chrome-tab.active{background:#fff}
+.chrome-tab span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.chrome-close{border:none;background:none;cursor:pointer;font-size:13px;color:#999}
+.chrome-close:hover{color:#e74c3c}
+.chrome-newtab{border:none;background:none;cursor:pointer;font-size:16px;padding:2px 8px;color:#666}
+.chrome-toolbar{display:flex;gap:4px;padding:5px;align-items:center;background:#fff;border-bottom:1px solid #e5e5e5}
+.chrome-bookmarks{display:flex;gap:4px;padding:3px 6px;background:#f5f5f5;border-bottom:1px solid #e5e5e5;flex-wrap:wrap}
+.chrome-bm{padding:2px 8px;border-radius:3px;cursor:pointer;font-size:11px;background:#e0e0e0}
+.chrome-bm:hover{background:#d0d0d0}
+.chrome-shortcut:hover{background:#f0f0f0}
+
+/* ===== Calculator ===== */
+.calc-display{width:100%;background:#1a1a2e;color:#fff;padding:8px 12px;border-radius:6px;margin-bottom:4px;text-align:right;box-sizing:border-box}
+.calc-sub{font-size:12px;color:#888;min-height:16px}
+.calc-main{font-size:32px;font-weight:300;overflow:hidden}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;width:100%}
+.calc-sci{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;width:100%;margin-bottom:4px}
+.calc-btn{padding:10px;border:none;border-radius:6px;font-size:15px;cursor:pointer;background:#f0f0f0;transition:background .1s}
+.calc-btn:hover{background:#e0e0e0}
+.calc-btn:active{background:#d0d0d0}
+.calc-btn.calc-fn{background:#d5d5d5}
+.calc-btn.calc-op{background:#ffd9a0;color:#e67e22;font-weight:600}
+.calc-btn.calc-eq{background:var(--accent);color:#fff;font-weight:600}
+.calc-btn.calc-eq:hover{background:var(--accent-2)}

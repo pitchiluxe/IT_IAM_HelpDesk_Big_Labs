@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
+
+# Database (local runtime data)
+*.db
+
+# Server logs
+server.log
+server.err
+
+# Cookies / temp
+cookies.txt
+login.json
+chat.json
+
+# OS
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.json
+!package.json
