@@ -43,7 +43,7 @@ def build():
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
-        "--console",                     # show console window (useful for server logs)
+        "--windowed",                    # no console window — proper Windows app
         "--name", APP_NAME,
         "--add-data", "../static;static",   # bundle static files (from parent dir)
         "--add-data", "database.py;.",       # bundle database module (same dir)
@@ -56,6 +56,11 @@ def build():
         "--hidden-import", "starlette.responses",
         "--hidden-import", "ctypes._layout",  # Python 3.14 internal module
         "--hidden-import", "click",
+        "--hidden-import", "pystray",
+        "--hidden-import", "pystray._win32",
+        "--hidden-import", "PIL",
+        "--hidden-import", "PIL.Image",
+        "--hidden-import", "PIL.ImageDraw",
         "--collect-data", "fastapi",
         "--collect-data", "starlette",
         "--exclude-module", "tkinter",   # not needed, causes Tcl data errors

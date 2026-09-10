@@ -1453,31 +1453,110 @@ async def startup():
     init_db()
 
 
+def _create_tray_icon():
+    """Create a system tray icon for the application."""
+    from PIL import Image, ImageDraw
+    import pystray
+    from pystray import MenuItem, Menu
+
+    # Generate a simple icon: gold circle with "L" on dark background
+    img = Image.new('RGBA', (64, 64), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    # Dark rounded background
+    draw.ellipse([4, 4, 60, 60], fill=(15, 10, 30, 255))
+    # Gold ring
+    draw.ellipse([8, 8, 56, 56], outline=(240, 180, 41, 255), width=3)
+    # Gold "L" letter
+    draw.line([24, 18, 24, 46], fill=(240, 180, 41, 255), width=5)
+    draw.line([24, 46, 42, 46], fill=(240, 180, 41, 255), width=5)
+
+    def on_open(icon, item):
+        import webbrowser
+        webbrowser.open("http://127.0.0.1:8000/")
+
+    def on_exit(icon, item):
+        icon.stop()
+        import os
+        os._exit(0)
+
+    icon = pystray.Icon(
+        "IT-IAM-HelpDesk-Lab",
+        img,
+        "IT / IAM / Help Desk Lab VM",
+        Menu(
+            MenuItem("Open Lab VM", on_open, default=True),
+            MenuItem("Exit", on_exit),
+        ),
+    )
+    return icon
+
+
+def _show_error_dialog(title, message):
+    """Show a Windows message box with an error."""
+    try:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(0, message, title, 0x10)  # MB_ICONERROR
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
     import sys
     import os
+    import io
     import uvicorn
     import threading
     import webbrowser
     import time
     import traceback
 
-    # When bundled with PyInstaller, set the working directory to the exe folder
-    # so the SQLite database is created next to the executable, not in a temp dir.
+    # When bundled with PyInstaller --windowed, sys.stdout and sys.stderr are None
+    # because there is no console. Uvicorn's logging crashes on None.isatty().
+    # Redirect them to a log file so the server can start cleanly.
     if getattr(sys, 'frozen', False):
         os.chdir(os.path.dirname(sys.executable))
+        if sys.stdout is None or sys.stderr is None:
+            _log_path = os.path.join(os.path.dirname(sys.executable), 'server.log')
+            _log_file = open(_log_path, 'w')
+            if sys.stdout is None:
+                sys.stdout = _log_file
+            if sys.stderr is None:
+                sys.stderr = _log_file
 
     def open_browser():
         time.sleep(2)
         webbrowser.open("http://127.0.0.1:8000/")
 
+    def run_server():
+        """Run the uvicorn server in a background thread."""
+        try:
+            init_db()
+            uvicorn.run(app, host="127.0.0.1", port=8000, log_level="warning")
+        except Exception as e:
+            log_path = os.path.join(
+                os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else '.',
+                'error.log'
+            )
+            with open(log_path, 'w') as f:
+                f.write(f"Startup error:\n{traceback.format_exc()}\n")
+            _show_error_dialog(
+                "IT/IAM Help Desk Lab - Startup Error",
+                f"The application failed to start.\n\nError: {e}\n\n"
+                f"See error.log in the application folder for details."
+            )
+            os._exit(1)
+
+    # Start server in background thread
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+
+    # Open browser after a short delay
+    threading.Thread(target=open_browser, daemon=True).start()
+
+    # Run the system tray icon (blocks until user exits)
     try:
-        init_db()
-        threading.Thread(target=open_browser, daemon=True).start()
-        uvicorn.run(app, host="127.0.0.1", port=8000)
-    except Exception as e:
-        # Log errors to a file so we can debug even in windowed mode
-        log_path = os.path.join(os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else '.', 'error.log')
-        with open(log_path, 'w') as f:
-            f.write(f"Startup error:\n{traceback.format_exc()}\n")
-        raise
+        tray = _create_tray_icon()
+        tray.run()
+    except Exception:
+        # If tray fails (e.g., no display), fall back to keeping server alive
+        server_thread.join()
