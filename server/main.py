@@ -1043,8 +1043,12 @@ import sys as _sys
 import os as _os
 
 # When bundled with PyInstaller, bundled data files (static/, landing.html)
-# are extracted to sys._MEIPASS. Use that path; otherwise use relative paths.
-_BUNDLE_DIR = getattr(_sys, '_MEIPASS', _os.path.dirname(_os.path.abspath(__file__)))
+# are extracted to sys._MEIPASS. When running locally from server/, the
+# static/ and landing.html live in the parent directory.
+if hasattr(_sys, '_MEIPASS'):
+    _BUNDLE_DIR = _sys._MEIPASS
+else:
+    _BUNDLE_DIR = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 
 app.mount("/static", StaticFiles(directory=_os.path.join(_BUNDLE_DIR, "static")), name="static")
 

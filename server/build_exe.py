@@ -45,9 +45,9 @@ def build():
         "--noconfirm",
         "--console",                     # show console window (useful for server logs)
         "--name", APP_NAME,
-        "--add-data", "static;static",   # bundle static files
-        "--add-data", "database.py;.",   # bundle database module
-        "--add-data", "landing.html;.",  # bundle landing page
+        "--add-data", "../static;static",   # bundle static files (from parent dir)
+        "--add-data", "database.py;.",       # bundle database module (same dir)
+        "--add-data", "../landing.html;.",   # bundle landing page (from parent dir)
         "--hidden-import", "httpx",
         "--hidden-import", "uvicorn",
         "--hidden-import", "fastapi",

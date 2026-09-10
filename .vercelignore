@@ -1,11 +1,8 @@
-main.py
-database.py
-build_exe.py
-_fix.py
-_check.js
+server/
 *.spec
 *.db
 server.log
 server.err
 Erick.jpg
 requirements-dev.txt
+landing.html
