@@ -1,6 +1,7 @@
 import { toast } from '../wm.js';
 import { modal, esc } from './lab1.js';
 import { API } from '../api.js';
+import { generateBatch, generateWallpaper, seedToId, idToSeed, generateThemeBatch, generateTheme, randomSeed } from './wallpaperGenerator.js';
 
 // A backend avatar is only treated as a picture when it is a data URL.
 // The seed users store single letters ("A", "H", "J") which must fall back
@@ -71,12 +72,22 @@ export function applySettings() {
     if (!s.avatar) document.querySelectorAll('#lock-avatar, #start-user-avatar').forEach(el => el.textContent = (s.userName[0]||'U'));
   }
 
-  // wallpaper
-  const wp = WALLPAPERS.find(w => w.id === s.wallpaper) || WALLPAPERS[0];
+  // wallpaper — check generated first, then presets
+  let wp = WALLPAPERS.find(w => w.id === s.wallpaper);
+  if (!wp && s.wallpaper) {
+    const info = idToSeed(s.wallpaper);
+    if (info) wp = generateWallpaper(info.seed, 'wall');
+  }
+  if (!wp) wp = WALLPAPERS[0];
   if (desktop) desktop.style.background = wp.css;
 
-  // lockscreen wallpaper
-  const lwp = LOCKSCREEN_WALLPAPERS.find(w => w.id === s.lockwallpaper) || LOCKSCREEN_WALLPAPERS[0];
+  // lockscreen wallpaper — check generated first, then presets
+  let lwp = LOCKSCREEN_WALLPAPERS.find(w => w.id === s.lockwallpaper);
+  if (!lwp && s.lockwallpaper) {
+    const info = idToSeed(s.lockwallpaper);
+    if (info) lwp = generateWallpaper(info.seed, 'lock');
+  }
+  if (!lwp) lwp = LOCKSCREEN_WALLPAPERS[0];
   if (lockscreen) lockscreen.style.background = lwp.css;
 
   // accent color
@@ -85,12 +96,25 @@ export function applySettings() {
     document.documentElement.style.setProperty('--accent-2', s.accent);
   }
 
-  // theme (light/dark)
-  const theme = THEMES.find(t => t.id === s.theme) || THEMES[0];
-  document.documentElement.style.setProperty('--win-bg', theme.winBg);
-  document.documentElement.style.setProperty('--win-border', theme.winBorder);
-  document.documentElement.style.setProperty('--text', theme.text);
-  if (taskbar) taskbar.style.background = theme.taskbarBg;
+  // theme — check for generated theme first, then presets
+  if (s.genTheme) {
+    const m = /^gen-theme-([0-9a-z]+)$/.exec(s.genTheme);
+    if (m) {
+      const gt = generateTheme(parseInt(m[1], 36));
+      document.documentElement.style.setProperty('--accent', gt.accent);
+      document.documentElement.style.setProperty('--accent-2', gt.accent);
+      document.documentElement.style.setProperty('--win-bg', gt.winBg);
+      document.documentElement.style.setProperty('--win-border', gt.winBorder);
+      document.documentElement.style.setProperty('--text', gt.text);
+      if (taskbar) taskbar.style.background = gt.taskbarBg;
+    }
+  } else {
+    const theme = THEMES.find(t => t.id === s.theme) || THEMES[0];
+    document.documentElement.style.setProperty('--win-bg', theme.winBg);
+    document.documentElement.style.setProperty('--win-border', theme.winBorder);
+    document.documentElement.style.setProperty('--text', theme.text);
+    if (taskbar) taskbar.style.background = theme.taskbarBg;
+  }
 
   // taskbar position
   if (s.taskbarPos === 'left') {
@@ -327,54 +351,188 @@ export function openSettings(body) {
   }
 
   function renderTheme(c) {
-    c.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      ${THEMES.map(t => `
-        <div class="report-card" style="cursor:pointer;border:${(s.theme||'light')===t.id?'2px solid var(--accent)':'1px solid #e5e5e5'}" data-theme="${t.id}">
-          <h3>${t.id==='dark'?'🌙':'☀️'} ${esc(t.name)}</h3>
-          <div style="height:120px;border-radius:8px;background:${t.id==='dark'?'#2b2b2b':'#f3f3f3'};margin-top:8px;display:flex;flex-direction:column;justify-content:flex-end;padding:10px">
-            <div style="background:${t.id==='dark'?'#3a3a3a':'#e5e5e5'};height:30px;border-radius:4px;margin-bottom:6px"></div>
-            <div style="background:${t.id==='dark'?'#1a1a1a':'#d0d0d0'};height:20px;border-radius:4px"></div>
-          </div>
-        </div>`).join('')}
-    </div>`;
+    const genThemeIds = JSON.parse(localStorage.getItem('labvm-gen-themes') || '[]');
+    const genThemes = genThemeIds.map(id => {
+      const m = /^gen-theme-([0-9a-z]+)$/.exec(id);
+      if (!m) return null;
+      return generateTheme(parseInt(m[1], 36));
+    }).filter(Boolean);
+
+    c.innerHTML = `
+      <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">
+        <button class="btn btn-primary" id="th-generate">🎨 Generate Themes</button>
+        <span class="muted" style="font-size:12px">Creates 4 unique color schemes instantly</span>
+        ${genThemeIds.length > 0 ? '<button class="btn btn-sm" id="th-clear-gen" style="margin-left:auto">Clear generated</button>' : ''}
+      </div>
+      ${genThemes.length > 0 ? `
+        <div style="margin-bottom:8px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.06em">Generated</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          ${genThemes.map(t => `
+            <div class="report-card" style="cursor:pointer;border:${(s.genTheme||'')===t.id?'2px solid var(--accent)':'1px solid #e5e5e5'}" data-gentheme="${t.id}">
+              <h3>${t.mode==='dark'?'🌙':'☀️'} ${esc(t.label)}</h3>
+              <div style="height:120px;border-radius:8px;background:${t.winBg};margin-top:8px;display:flex;flex-direction:column;justify-content:flex-end;padding:10px">
+                <div style="background:${t.accent};height:30px;border-radius:4px;margin-bottom:6px"></div>
+                <div style="background:${t.winBorder};height:20px;border-radius:4px"></div>
+              </div>
+            </div>`).join('')}
+        </div>` : ''}
+      <div style="margin-bottom:8px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.06em">Preset</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        ${THEMES.map(t => `
+          <div class="report-card" style="cursor:pointer;border:${(s.theme||'light')===t.id && !s.genTheme?'2px solid var(--accent)':'1px solid #e5e5e5'}" data-theme="${t.id}">
+            <h3>${t.id==='dark'?'🌙':'☀️'} ${esc(t.name)}</h3>
+            <div style="height:120px;border-radius:8px;background:${t.id==='dark'?'#2b2b2b':'#f3f3f3'};margin-top:8px;display:flex;flex-direction:column;justify-content:flex-end;padding:10px">
+              <div style="background:${t.id==='dark'?'#3a3a3a':'#e5e5e5'};height:30px;border-radius:4px;margin-bottom:6px"></div>
+              <div style="background:${t.id==='dark'?'#1a1a1a':'#d0d0d0'};height:20px;border-radius:4px"></div>
+            </div>
+          </div>`).join('')}
+      </div>`;
     c.querySelectorAll('[data-theme]').forEach(el => el.onclick = () => {
-      s.theme = el.dataset.theme; saveSettings(s); applySettings(); toast('Theme changed to ' + el.dataset.theme); render();
+      s.theme = el.dataset.theme; s.genTheme = ''; saveSettings(s); applySettings(); toast('Theme changed to ' + el.dataset.theme); render();
     });
+    c.querySelectorAll('[data-gentheme]').forEach(el => el.onclick = () => {
+      const id = el.dataset.gentheme;
+      const m = /^gen-theme-([0-9a-z]+)$/.exec(id);
+      if (!m) return;
+      const t = generateTheme(parseInt(m[1], 36));
+      s.genTheme = id; s.theme = t.mode === 'dark' ? 'dark' : 'light';
+      saveSettings(s);
+      // Apply generated theme colors
+      document.documentElement.style.setProperty('--accent', t.accent);
+      document.documentElement.style.setProperty('--accent-2', t.accent);
+      document.documentElement.style.setProperty('--win-bg', t.winBg);
+      document.documentElement.style.setProperty('--win-border', t.winBorder);
+      document.documentElement.style.setProperty('--text', t.text);
+      const taskbar = document.getElementById('taskbar');
+      if (taskbar) taskbar.style.background = t.taskbarBg;
+      toast('Generated theme applied: ' + t.label);
+      render();
+    });
+    const genBtn = c.querySelector('#th-generate');
+    if (genBtn) genBtn.onclick = () => {
+      const existing = JSON.parse(localStorage.getItem('labvm-gen-themes') || '[]');
+      const fresh = generateThemeBatch(4, existing);
+      const allIds = [...existing, ...fresh.map(t => t.id)];
+      localStorage.setItem('labvm-gen-themes', JSON.stringify(allIds));
+      toast(`Generated ${fresh.length} new themes!`);
+      render();
+    };
+    const clearGen = c.querySelector('#th-clear-gen');
+    if (clearGen) clearGen.onclick = () => {
+      localStorage.removeItem('labvm-gen-themes');
+      if (s.genTheme) { s.genTheme = ''; saveSettings(s); applySettings(); }
+      toast('Generated themes cleared');
+      render();
+    };
   }
 
   function renderWallpaper(c) {
-    c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
-      ${WALLPAPERS.map(w => `
-        <div style="cursor:pointer;border:${(s.wallpaper||'default')===w.id?'3px solid var(--accent)':'1px solid #e5e5e5'};border-radius:8px;overflow:hidden" data-wp="${w.id}">
-          <div style="height:100px;background:${w.css}"></div>
-          <div style="padding:8px;font-size:12px;text-align:center">${esc(w.name)}</div>
-        </div>`).join('')}
-    </div>`;
+    const genIds = JSON.parse(localStorage.getItem('labvm-gen-wallpapers') || '[]');
+    const genWalls = genIds.map(id => {
+      const info = idToSeed(id);
+      return info ? generateWallpaper(info.seed, 'wall') : null;
+    }).filter(Boolean);
+
+    c.innerHTML = `
+      <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">
+        <button class="btn btn-primary" id="wp-generate">🎨 Generate Wallpapers</button>
+        <span class="muted" style="font-size:12px">Creates 6 unique AI-style wallpapers instantly</span>
+        ${genIds.length > 0 ? '<button class="btn btn-sm" id="wp-clear-gen" style="margin-left:auto">Clear generated</button>' : ''}
+      </div>
+      ${genWalls.length > 0 ? `
+        <div style="margin-bottom:8px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.06em">Generated</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+          ${genWalls.map(w => `
+            <div style="cursor:pointer;border:${(s.wallpaper||'default')===w.id?'3px solid var(--accent)':'1px solid #e5e5e5'};border-radius:8px;overflow:hidden" data-wp="${w.id}">
+              <div style="height:100px;background:${w.css}"></div>
+              <div style="padding:8px;font-size:12px;text-align:center">${esc(w.label)}</div>
+            </div>`).join('')}
+        </div>` : ''}
+      <div style="margin-bottom:8px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.06em">Preset</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+        ${WALLPAPERS.map(w => `
+          <div style="cursor:pointer;border:${(s.wallpaper||'default')===w.id?'3px solid var(--accent)':'1px solid #e5e5e5'};border-radius:8px;overflow:hidden" data-wp="${w.id}">
+            <div style="height:100px;background:${w.css}"></div>
+            <div style="padding:8px;font-size:12px;text-align:center">${esc(w.name)}</div>
+          </div>`).join('')}
+      </div>`;
     c.querySelectorAll('[data-wp]').forEach(el => el.onclick = () => {
       s.wallpaper = el.dataset.wp; saveSettings(s); applySettings(); toast('Wallpaper changed'); render();
     });
+    const genBtn = c.querySelector('#wp-generate');
+    if (genBtn) genBtn.onclick = () => {
+      const existing = JSON.parse(localStorage.getItem('labvm-gen-wallpapers') || '[]');
+      const fresh = generateBatch(6, 'wall', existing);
+      const allIds = [...existing, ...fresh.map(w => w.id)];
+      localStorage.setItem('labvm-gen-wallpapers', JSON.stringify(allIds));
+      toast(`Generated ${fresh.length} new wallpapers!`);
+      render();
+    };
+    const clearGen = c.querySelector('#wp-clear-gen');
+    if (clearGen) clearGen.onclick = () => {
+      localStorage.removeItem('labvm-gen-wallpapers');
+      toast('Generated wallpapers cleared');
+      render();
+    };
   }
 
   function renderLockscreen(c) {
-    c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
-      ${LOCKSCREEN_WALLPAPERS.map(w => `
-        <div style="cursor:pointer;border:${(s.lockwallpaper||'lock-default')===w.id?'3px solid var(--accent)':'1px solid #e5e5e5'};border-radius:8px;overflow:hidden" data-lwp="${w.id}">
-          <div style="height:100px;background:${w.css}"></div>
-          <div style="padding:8px;font-size:12px;text-align:center">${esc(w.name)}</div>
-        </div>`).join('')}
-    </div>
-    <div style="margin-top:16px;padding:14px;background:#fff;border-radius:8px;border:1px solid #e5e5e5">
-      <h3 style="font-size:14px;margin-bottom:8px">Lock Screen Preview</h3>
-      <div id="lock-preview" style="height:200px;border-radius:8px;background:${(LOCKSCREEN_WALLPAPERS.find(w=>w.id===s.lockwallpaper)||LOCKSCREEN_WALLPAPERS[0]).css};display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff">
-        <div style="font-size:48px;font-weight:300">12:00</div>
-        <div style="font-size:18px">Wednesday, September 9</div>
-        <div style="margin-top:20px;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:28px">A</div>
-        <div style="margin-top:8px">Lab Administrator</div>
+    const genIds = JSON.parse(localStorage.getItem('labvm-gen-lockscreens') || '[]');
+    const genLocks = genIds.map(id => {
+      const info = idToSeed(id);
+      return info ? generateWallpaper(info.seed, 'lock') : null;
+    }).filter(Boolean);
+
+    c.innerHTML = `
+      <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">
+        <button class="btn btn-primary" id="lk-generate">🎨 Generate Lock Screens</button>
+        <span class="muted" style="font-size:12px">Creates 6 unique lock screen backgrounds</span>
+        ${genIds.length > 0 ? '<button class="btn btn-sm" id="lk-clear-gen" style="margin-left:auto">Clear generated</button>' : ''}
       </div>
-    </div>`;
+      ${genLocks.length > 0 ? `
+        <div style="margin-bottom:8px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.06em">Generated</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+          ${genLocks.map(w => `
+            <div style="cursor:pointer;border:${(s.lockwallpaper||'lock-default')===w.id?'3px solid var(--accent)':'1px solid #e5e5e5'};border-radius:8px;overflow:hidden" data-lwp="${w.id}">
+              <div style="height:100px;background:${w.css}"></div>
+              <div style="padding:8px;font-size:12px;text-align:center">${esc(w.label)}</div>
+            </div>`).join('')}
+        </div>` : ''}
+      <div style="margin-bottom:8px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.06em">Preset</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+        ${LOCKSCREEN_WALLPAPERS.map(w => `
+          <div style="cursor:pointer;border:${(s.lockwallpaper||'lock-default')===w.id?'3px solid var(--accent)':'1px solid #e5e5e5'};border-radius:8px;overflow:hidden" data-lwp="${w.id}">
+            <div style="height:100px;background:${w.css}"></div>
+            <div style="padding:8px;font-size:12px;text-align:center">${esc(w.name)}</div>
+          </div>`).join('')}
+      </div>
+      <div style="margin-top:16px;padding:14px;background:#fff;border-radius:8px;border:1px solid #e5e5e5">
+        <h3 style="font-size:14px;margin-bottom:8px">Lock Screen Preview</h3>
+        <div id="lock-preview" style="height:200px;border-radius:8px;background:${(LOCKSCREEN_WALLPAPERS.find(w=>w.id===s.lockwallpaper)||LOCKSCREEN_WALLPAPERS[0]).css};display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff">
+          <div style="font-size:48px;font-weight:300">12:00</div>
+          <div style="font-size:18px">Wednesday, September 9</div>
+          <div style="margin-top:20px;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:28px">A</div>
+          <div style="margin-top:8px">Lab Administrator</div>
+        </div>
+      </div>`;
     c.querySelectorAll('[data-lwp]').forEach(el => el.onclick = () => {
       s.lockwallpaper = el.dataset.lwp; saveSettings(s); applySettings(); toast('Lock screen wallpaper changed'); render();
     });
+    const genBtn = c.querySelector('#lk-generate');
+    if (genBtn) genBtn.onclick = () => {
+      const existing = JSON.parse(localStorage.getItem('labvm-gen-lockscreens') || '[]');
+      const fresh = generateBatch(6, 'lock', existing);
+      const allIds = [...existing, ...fresh.map(w => w.id)];
+      localStorage.setItem('labvm-gen-lockscreens', JSON.stringify(allIds));
+      toast(`Generated ${fresh.length} new lock screens!`);
+      render();
+    };
+    const clearGen = c.querySelector('#lk-clear-gen');
+    if (clearGen) clearGen.onclick = () => {
+      localStorage.removeItem('labvm-gen-lockscreens');
+      toast('Generated lock screens cleared');
+      render();
+    };
   }
 
   function renderAccent(c) {

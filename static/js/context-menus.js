@@ -5,6 +5,14 @@ let contextMenu = null;
 let allMenus = []; // track ALL open menu elements (parent + submenus)
 
 export function initContextMenus() {
+  // Global: suppress the browser's native context menu everywhere in the app.
+  // Only allow it on text inputs/textareas where copy/cut/paste is useful.
+  document.addEventListener('contextmenu', (e) => {
+    const el = e.target;
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return; // allow native menu on text fields
+    e.preventDefault();
+  }, { capture: true });
+
   // Desktop right-click
   document.getElementById('desktop').addEventListener('contextmenu', e => {
     // If clicking on a desktop icon, let the icon handler work

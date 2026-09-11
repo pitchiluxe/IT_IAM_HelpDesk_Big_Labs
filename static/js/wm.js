@@ -36,7 +36,7 @@ export function rebuildTaskbar() {
     const btn = document.createElement('button');
     const isOpen = openWindows.has(appId);
     btn.className = 'taskbar-app' + (isOpen ? ' active' : '') + ' pinned';
-    btn.innerHTML = `<span>${app.icon || '?'}</span><span class="taskbar-app-label">${app.title}</span>`;
+    btn.innerHTML = `<span>${app.icon || '?'}</span>`;
     btn.title = app.title;
     btn.dataset.appId = appId;
     btn.dataset.pinned = 'true';
@@ -50,7 +50,7 @@ export function rebuildTaskbar() {
         window.LabVM.launch(app);
       }
     };
-    btn.oncontextmenu = (e) => { e.preventDefault(); showTaskbarContextMenu(e.clientX, e.clientY, appId, true); };
+    btn.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); showTaskbarContextMenu(e.clientX, e.clientY, appId, true); };
     container.appendChild(btn);
   }
   // Running apps that aren't pinned
@@ -60,7 +60,7 @@ export function rebuildTaskbar() {
     const icon = rec.el.querySelector('.win-ic')?.textContent || '?';
     const title = rec.el.querySelector('.win-title-text')?.textContent || id;
     btn.className = 'taskbar-app active';
-    btn.innerHTML = `<span>${icon}</span><span class="taskbar-app-label">${title}</span>`;
+    btn.innerHTML = `<span>${icon}</span>`;
     btn.title = title;
     btn.dataset.appId = id;
     btn.onclick = () => {
@@ -68,13 +68,10 @@ export function rebuildTaskbar() {
       else if (activeWin === id) { rec.el.classList.add('minimized'); btn.classList.remove('active'); }
       else focusWindow(id);
     };
-    btn.oncontextmenu = (e) => { e.preventDefault(); showTaskbarContextMenu(e.clientX, e.clientY, id, false); };
+    btn.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); showTaskbarContextMenu(e.clientX, e.clientY, id, false); };
     rec.taskbarBtn = btn;
     container.appendChild(btn);
   }
-  // Toggle crowded class when too many apps (hides labels like the reference app)
-  const totalApps = pinned.length + [...openWindows.keys()].filter(id => !pinned.includes(id)).length;
-  container.classList.toggle('crowded', totalApps > 6);
 }
 
 function showTaskbarContextMenu(x, y, appId, isPinned) {

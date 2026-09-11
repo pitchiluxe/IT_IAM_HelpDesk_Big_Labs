@@ -19,7 +19,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # Application version — bumped with each release. The auto-updater compares
 # this against the latest GitHub Release tag to decide whether to update.
-APP_VERSION = "1.3"
+APP_VERSION = "1.4"
 GITHUB_OWNER = "pitchiluxe"
 GITHUB_REPO = "IT_IAM_HelpDesk_Big_Labs"
 

@@ -135,14 +135,12 @@ html,body{height:100%;overflow:hidden;font-family:"Segoe UI","Segoe UI Variable"
 }
 .taskbar-btn:hover{background:rgba(255,255,255,.1)}
 .taskbar-apps{display:flex;align-items:center;gap:4px;overflow:hidden}
-.taskbar-apps.crowded .taskbar-app{width:46px;flex:0 0 46px;padding:0;justify-content:center}
-.taskbar-apps.crowded .taskbar-app-label{display:none}
 .taskbar-app{
   width:40px;height:40px;border:none;background:transparent;cursor:pointer;border-radius:6px;
   display:flex;align-items:center;justify-content:center;color:#fff;position:relative;transition:background .12s;
 }
 .taskbar-app > span:first-child{font-size:15px;line-height:1;flex-shrink:0}
-.taskbar-app-label{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;margin-left:6px}
+.taskbar-app-label{display:none}
 .taskbar-app:hover{background:rgba(255,255,255,.1)}
 .taskbar-app.active{background:rgba(255,255,255,.14)}
 .taskbar-app.active::after{content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:16px;height:3px;border-radius:2px;background:var(--accent)}
