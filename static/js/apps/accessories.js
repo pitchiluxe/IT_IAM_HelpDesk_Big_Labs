@@ -400,42 +400,62 @@ export function openChrome(body) {
       </div>
       <style>@keyframes ch-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>`;
       renderTabs();
-      // Try loading the page directly in an iframe (user's browser has internet access)
-      // Many sites block iframes via X-Frame-Options, so we detect failure and show fallback
-      let loaded = false;
+
+      // Strategy 1: Try direct iframe (uses the browser's network stack + DNS)
+      let iframeLoaded = false;
       const iframe = document.createElement('iframe');
       iframe.src = fullUrl;
       iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#fff';
       iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups';
-      iframe.onload = () => { loaded = true; };
-      iframe.onerror = () => { loaded = false; };
+      iframe.onload = () => { iframeLoaded = true; };
       content.innerHTML = '';
       content.appendChild(iframe);
-      // Check after 5 seconds if the iframe loaded; if not, show fallback
-      setTimeout(() => {
-        if (!loaded && document.contains(iframe)) {
-          // The iframe may have loaded but X-Frame-Options blocked it, or it's blank
+
+      // After 4 seconds, check if the iframe loaded successfully
+      setTimeout(async () => {
+        if (iframeLoaded && document.contains(iframe)) {
+          // iframe loaded — but check if it's blank (X-Frame-Options blocked)
           try {
-            // If we can't access the iframe content (cross-origin), it likely loaded
-            // If it's blank or errored, show fallback
             const doc = iframe.contentDocument || iframe.contentWindow?.document;
             if (!doc || doc.body?.innerHTML === '' || doc.URL === 'about:blank') {
-              showFallback(fullUrl);
+              // Blank — try server proxy
+              await tryProxy(fullUrl, content);
             }
+            // else: cross-origin = page loaded fine, leave it
           } catch (e) {
-            // Cross-origin = the page loaded (we just can't read it) — leave the iframe
+            // Cross-origin = page loaded fine, leave the iframe
           }
+        } else if (document.contains(iframe)) {
+          // iframe didn't fire onload — try server proxy
+          await tryProxy(fullUrl, content);
         }
-      }, 5000);
+      }, 4000);
       renderTabs();
     }
 
-    function showFallback(fullUrl) {
+    async function tryProxy(fullUrl, content) {
+      try {
+        const res = await fetch('/api/browse?url=' + encodeURIComponent(fullUrl), { credentials: 'same-origin' });
+        if (!res.ok) throw new Error('Server proxy failed');
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        const iframe2 = document.createElement('iframe');
+        iframe2.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#fff';
+        iframe2.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups';
+        iframe2.srcdoc = data.html || '';
+        content.innerHTML = '';
+        content.appendChild(iframe2);
+      } catch (e) {
+        showFallback(fullUrl, e.message);
+      }
+    }
+
+    function showFallback(fullUrl, errMsg) {
       content.innerHTML = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f5f5f5">
         <div style="font-size:48px;margin-bottom:12px">🌐</div>
         <div style="font-size:18px;font-weight:600;margin-bottom:6px">${esc(tab.title)}</div>
         <div style="color:#888;margin-bottom:14px">${esc(fullUrl)}</div>
-        <div style="max-width:400px;text-align:center;color:#666;font-size:13px;margin-bottom:14px">This site blocks embedding in iframes for security (X-Frame-Options). You can still open it in a new browser tab.</div>
+        <div style="max-width:400px;text-align:center;color:#666;font-size:13px;margin-bottom:14px">${esc(errMsg || 'Could not load this page. The site may be offline or blocking embedded content.')}</div>
         <div style="display:flex;gap:8px">
           <a href="${esc(fullUrl)}" target="_blank" class="btn btn-primary btn-sm">Open in new tab ↗</a>
           <button class="btn btn-sm" id="ch-retry">↻ Retry</button>
