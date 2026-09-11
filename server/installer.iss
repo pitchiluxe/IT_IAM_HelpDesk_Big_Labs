@@ -3,7 +3,7 @@
 ; creates Start Menu and Desktop shortcuts, and includes an uninstaller.
 
 #define MyAppName "IT IAM Help Desk Lab"
-#define MyAppVersion "1.2"
+#define MyAppVersion "1.3"
 #define MyAppPublisher "Erick Omari"
 #define MyAppExeName "IT_IAM_HelpDesk_Lab.exe"
 #define MyAppIcon "..\app.ico"
@@ -17,7 +17,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..
-OutputBaseFilename=IT_IAM_HelpDesk_Lab_Setup_v1.2
+OutputBaseFilename=IT_IAM_HelpDesk_Lab_Setup_v1.3
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64

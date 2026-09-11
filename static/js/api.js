@@ -71,4 +71,7 @@ export const API = {
   ollamaChat: (messages, model) => api('/api/ollama/chat', { method: 'POST', body: { messages, model } }),
   // browser proxy
   browse: (url) => api('/api/browse?url=' + encodeURIComponent(url)),
+  // updates
+  checkUpdate: () => api('/api/check-update'),
+  applyUpdate: () => api('/api/apply-update', { method: 'POST' }),
 };

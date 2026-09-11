@@ -19,7 +19,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # Application version — bumped with each release. The auto-updater compares
 # this against the latest GitHub Release tag to decide whether to update.
-APP_VERSION = "1.2"
+APP_VERSION = "1.3"
 GITHUB_OWNER = "pitchiluxe"
 GITHUB_REPO = "IT_IAM_HelpDesk_Big_Labs"
 
@@ -139,6 +139,64 @@ async def update_profile(request: Request):
 async def version():
     """Return the current app version (used by the frontend and auto-updater)."""
     return {"version": APP_VERSION, "repo": f"{GITHUB_OWNER}/{GITHUB_REPO}"}
+
+
+@app.get("/api/check-update")
+async def check_update(request: Request):
+    """Check GitHub Releases for a newer version. Returns update info without
+    downloading or installing anything. Works in both dev and bundled mode."""
+    require_user(request)
+    rel = _fetch_latest_release()
+    if not rel or not rel.get("tag"):
+        return {"available": False, "current_version": APP_VERSION, "error": "Could not reach GitHub"}
+    latest = rel["tag"]
+    is_newer = _parse_version(latest) > _parse_version(APP_VERSION)
+    installer = None
+    for a in rel.get("assets", []):
+        name = a.get("name", "").lower()
+        if name.endswith(".exe") and ("setup" in name or "install" in name):
+            installer = a
+            break
+    return {
+        "available": is_newer,
+        "current_version": APP_VERSION,
+        "latest_version": latest,
+        "installer_name": installer["name"] if installer else None,
+        "installer_url": installer["url"] if installer else None,
+        "frozen": bool(getattr(__import__('sys'), 'frozen', False)),
+    }
+
+
+@app.post("/api/apply-update")
+async def apply_update(request: Request):
+    """Download and silently install the latest release. Only works when the
+    app is frozen (bundled .exe). In dev mode, returns an error."""
+    require_user(request)
+    if not getattr(__import__('sys'), 'frozen', False):
+        return {"ok": False, "error": "Auto-update is only available in the installed (bundled) version."}
+    rel = _fetch_latest_release()
+    if not rel or not rel.get("tag"):
+        return {"ok": False, "error": "Could not reach GitHub to check for updates."}
+    if _parse_version(rel["tag"]) <= _parse_version(APP_VERSION):
+        return {"ok": False, "error": "You are already running the latest version."}
+    installer_asset = None
+    for a in rel["assets"]:
+        name = a.get("name", "").lower()
+        if name.endswith(".exe") and ("setup" in name or "install" in name):
+            installer_asset = a
+            break
+    if not installer_asset or not installer_asset.get("url"):
+        return {"ok": False, "error": "No installer found in the latest release."}
+    import tempfile, threading, subprocess
+    def _do_update():
+        tmp = tempfile.mktemp(suffix=".exe")
+        if _download_file(installer_asset["url"], tmp):
+            _notify_tray(_tray_icon, "Updating", f"Installing {rel['tag']}...")
+            subprocess.Popen([tmp, "/VERYSILENT", "/CLOSEAPPLICATIONS", "/NORESTART"])
+        else:
+            _notify_tray(_tray_icon, "Update failed", "Could not download the installer.")
+    threading.Thread(target=_do_update, daemon=True).start()
+    return {"ok": True, "message": f"Downloading and installing {rel['tag']}..."}
 
 
 @app.post("/api/change-password")

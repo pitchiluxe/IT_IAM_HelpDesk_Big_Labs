@@ -116,6 +116,7 @@ export function openSettings(body) {
           <div class="nav-item" data-v="lockscreen" style="color:#333">🔒 Lock Screen</div>
           <div class="nav-item" data-v="accent" style="color:#333">🎯 Accent Color</div>
           <div class="nav-item" data-v="taskbar" style="color:#333">📊 Taskbar</div>
+          <div class="nav-item" data-v="update" style="color:#333">🔄 Windows Update</div>
           <div class="nav-item" data-v="about" style="color:#333">ℹ️ About</div>
         </div>
         <div class="portal-main">
@@ -137,7 +138,7 @@ export function openSettings(body) {
     const c = body.querySelector('#set-content');
     const titles = {
       personalization: 'Personalization', account: 'Account', theme: 'Theme', wallpaper: 'Wallpaper',
-      lockscreen: 'Lock Screen', accent: 'Accent Color', taskbar: 'Taskbar', about: 'About'
+      lockscreen: 'Lock Screen', accent: 'Accent Color', taskbar: 'Taskbar', update: 'Windows Update', about: 'About'
     };
     body.querySelector('#set-title').textContent = titles[view];
     if (view === 'personalization') renderPersonalization(c);
@@ -147,6 +148,7 @@ export function openSettings(body) {
     else if (view === 'lockscreen') renderLockscreen(c);
     else if (view === 'accent') renderAccent(c);
     else if (view === 'taskbar') renderTaskbar(c);
+    else if (view === 'update') renderUpdate(c);
     else if (view === 'about') renderAbout(c);
   }
 
@@ -429,12 +431,126 @@ export function openSettings(body) {
     };
   }
 
+  function renderUpdate(c) {
+    c.innerHTML = `
+      <div class="report-card" style="max-width:600px">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+          <div style="font-size:40px">🔄</div>
+          <div>
+            <h3 style="margin:0">Windows Update</h3>
+            <div class="muted" style="margin-top:4px" id="upd-status">Checking for updates...</div>
+          </div>
+        </div>
+        <div id="upd-body" style="min-height:120px">
+          <div style="display:flex;align-items:center;gap:12px;padding:20px;color:#666">
+            <div style="font-size:24px;animation:ch-spin 1s linear infinite">🔄</div>
+            <div>Checking for updates...</div>
+          </div>
+        </div>
+      </div>`;
+    const statusEl = c.querySelector('#upd-status');
+    const bodyEl = c.querySelector('#upd-body');
+    let checking = false, updateData = null;
+
+    async function doCheck() {
+      if (checking) return;
+      checking = true;
+      statusEl.textContent = 'Checking for updates...';
+      bodyEl.innerHTML = `<div style="display:flex;align-items:center;gap:12px;padding:20px;color:#666">
+        <div style="font-size:24px;animation:ch-spin 1s linear infinite">🔄</div>
+        <div>Checking for updates...</div>
+      </div>`;
+      try {
+        const res = await API.checkUpdate();
+        updateData = res;
+        checking = false;
+        if (res.error) {
+          statusEl.textContent = 'Could not check for updates';
+          bodyEl.innerHTML = `<div style="padding:20px;color:#e74c3c">
+            <div style="font-size:28px;margin-bottom:8px">⚠️</div>
+            <div>${esc(res.error)}</div>
+            <div style="margin-top:8px;font-size:12px;color:#999">Make sure you have an internet connection.</div>
+          </div>`;
+        } else if (res.available) {
+          statusEl.textContent = `Update available: ${res.latest_version}`;
+          bodyEl.innerHTML = `<div style="padding:16px;border:1px solid #f39c12;border-radius:8px;background:#fef9e7">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+              <div style="font-size:32px">⬆️</div>
+              <div>
+                <div style="font-size:16px;font-weight:600;color:#e67e22">A new version is available!</div>
+                <div style="font-size:13px;color:#999;margin-top:4px">Current: v${res.current_version} → Latest: ${res.latest_version}</div>
+              </div>
+            </div>
+            <div style="font-size:13px;color:#666;margin-bottom:14px">${res.frozen ? 'Click "Install update" to download and install. The app will restart automatically.' : 'You are running in development mode. Download the installer to update.'}</div>
+            <div style="display:flex;gap:8px">
+              ${res.frozen
+                ? '<button class="btn btn-primary" id="upd-install">⬇️ Install update</button>'
+                : '<a href="' + esc(res.installer_url || '#') + '" target="_blank" class="btn btn-primary">⬇️ Download installer</a>'}
+              <button class="btn" id="upd-recheck">🔄 Check again</button>
+            </div>
+            <div id="upd-install-status" style="margin-top:12px;font-size:13px"></div>
+          </div>`;
+          const installBtn = c.querySelector('#upd-install');
+          if (installBtn) installBtn.onclick = async () => {
+            installBtn.disabled = true;
+            installBtn.textContent = '⬇️ Downloading...';
+            const st = c.querySelector('#upd-install-status');
+            st.style.color = '#0a84ff';
+            st.textContent = 'Downloading and installing the update. The app will restart automatically...';
+            try {
+              const r = await API.applyUpdate();
+              if (r.ok) {
+                st.style.color = '#2ecc71';
+                st.textContent = r.message || 'Update is being installed. The app will restart shortly.';
+                installBtn.textContent = '✓ Installing...';
+              } else {
+                st.style.color = '#e74c3c';
+                st.textContent = r.error || 'Failed to start update.';
+                installBtn.disabled = false;
+                installBtn.textContent = '⬇️ Install update';
+              }
+            } catch (e) {
+              st.style.color = '#e74c3c';
+              st.textContent = 'Error: ' + e.message;
+              installBtn.disabled = false;
+              installBtn.textContent = '⬇️ Install update';
+            }
+          };
+          const recheck = c.querySelector('#upd-recheck');
+          if (recheck) recheck.onclick = doCheck;
+        } else {
+          statusEl.textContent = `You're up to date — v${res.current_version}`;
+          bodyEl.innerHTML = `<div style="padding:24px;text-align:center">
+            <div style="font-size:48px;margin-bottom:12px">✅</div>
+            <div style="font-size:16px;font-weight:600;color:#2ecc71;margin-bottom:6px">You're up to date!</div>
+            <div style="font-size:13px;color:#999">Current version: v${res.current_version}</div>
+            <div style="font-size:13px;color:#999">Latest version: ${res.latest_version}</div>
+            <button class="btn" id="upd-recheck" style="margin-top:16px">🔄 Check for updates</button>
+          </div>`;
+          const recheck = c.querySelector('#upd-recheck');
+          if (recheck) recheck.onclick = doCheck;
+        }
+      } catch (e) {
+        checking = false;
+        statusEl.textContent = 'Error checking for updates';
+        bodyEl.innerHTML = `<div style="padding:20px;color:#e74c3c">
+          <div style="font-size:28px;margin-bottom:8px">⚠️</div>
+          <div>${esc(e.message)}</div>
+          <button class="btn" id="upd-recheck" style="margin-top:12px">🔄 Try again</button>
+        </div>`;
+        const recheck = c.querySelector('#upd-recheck');
+        if (recheck) recheck.onclick = doCheck;
+      }
+    }
+    doCheck();
+  }
+
   function renderAbout(c) {
     c.innerHTML = `
       <div class="report-card">
         <h3>Lab VM — IT/IAM Help Desk Desktop</h3>
         <div style="margin-top:10px;font-size:13px;line-height:1.8">
-          <div><b>Version:</b> 1.0.0</div>
+          <div><b>Version:</b> <span id="about-version">Loading...</span></div>
           <div><b>Edition:</b> Lab VM Professional</div>
           <div><b>OS:</b> Web-based Windows 11 Simulation</div>
           <div><b>Processor:</b> Virtual (Browser Engine)</div>
@@ -454,6 +570,11 @@ export function openSettings(body) {
         <h3>Technologies</h3>
         <div style="margin-top:8px;font-size:13px">FastAPI · SQLite · Vanilla JS · CSS3</div>
       </div>`;
+    // Fetch real version from the backend
+    fetch('/api/version', { credentials: 'same-origin' }).then(r => r.json()).then(d => {
+      const el = c.querySelector('#about-version');
+      if (el) el.textContent = 'v' + d.version;
+    }).catch(() => {});
   }
 
   render();
