@@ -1,5 +1,11 @@
 import { toast } from '../wm.js';
 import { modal, esc } from './lab1.js';
+import { API } from '../api.js';
+
+// A backend avatar is only treated as a picture when it is a data URL.
+// The seed users store single letters ("A", "H", "J") which must fall back
+// to the letter-based avatar derived from the display name.
+function isImageAvatar(a) { return !!a && a.startsWith('data:'); }
 
 // Wallpaper presets (CSS gradients)
 const WALLPAPERS = [
@@ -188,7 +194,7 @@ export function openSettings(body) {
       const file = e.target.files[0]; if (!file) return;
       if (file.size > 2 * 1024 * 1024) { toast('File too large (max 2MB)'); return; }
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         s.avatar = ev.target.result; saveSettings(s); applySettings();
         c.querySelector('#acc-avatar-preview').style.background = 'url(' + ev.target.result + ') center/cover';
         c.querySelector('#acc-avatar-preview').textContent = '';
@@ -197,11 +203,13 @@ export function openSettings(body) {
           el.style.background = 'url(' + ev.target.result + ') center/cover';
           el.textContent = '';
         });
+        // persist to the backend so it survives app restarts
+        try { await API.put('/api/me/profile', { avatar: ev.target.result }); } catch (err) { toast('Picture saved locally only (server error)'); }
         toast('Profile picture updated');
       };
       reader.readAsDataURL(file);
     };
-    c.querySelector('#acc-remove').onclick = () => {
+    c.querySelector('#acc-remove').onclick = async () => {
       s.avatar = ''; saveSettings(s); applySettings();
       c.querySelector('#acc-avatar-preview').style.background = 'linear-gradient(135deg,#0a84ff,#003a70)';
       c.querySelector('#acc-avatar-preview').textContent = (userName[0]||'U');
@@ -209,12 +217,16 @@ export function openSettings(body) {
         el.style.background = '';
         el.textContent = (userName[0]||'U');
       });
+      try { await API.put('/api/me/profile', { avatar: '' }); } catch (err) {}
       toast('Profile picture removed');
     };
-    c.querySelector('#acc-save-name').onclick = () => {
-      s.userName = c.querySelector('#acc-name').value; saveSettings(s);
+    c.querySelector('#acc-save-name').onclick = async () => {
+      const newName = c.querySelector('#acc-name').value.trim();
+      if (!newName) { toast('Display name cannot be empty'); return; }
+      s.userName = newName; saveSettings(s);
       document.querySelectorAll('#lock-name, #start-user-name').forEach(el => el.textContent = s.userName);
       if (!s.avatar) document.querySelectorAll('#lock-avatar, #start-user-avatar').forEach(el => el.textContent = (s.userName[0]||'U'));
+      try { await API.put('/api/me/profile', { full_name: newName }); } catch (err) { toast('Name saved locally only (server error)'); }
       toast('Display name saved');
     };
     c.querySelector('#acc-signout').onclick = async () => {
@@ -248,10 +260,30 @@ export function openSettings(body) {
         msg.style.color = '#e74c3c'; msg.textContent = 'Error: ' + e.message;
       }
     };
-    // load account info
+    // load account info from the backend (source of truth for name + avatar)
     fetch('/api/me', { credentials: 'same-origin' }).then(r => r.json()).then(u => {
       c.querySelector('#acc-type').textContent = u.role;
       c.querySelector('#acc-email').textContent = u.username + '@lab.local';
+      // sync display name + avatar from the backend into local settings cache
+      let changed = false;
+      if (u.full_name && u.full_name !== s.userName) { s.userName = u.full_name; changed = true; }
+      const beAvatar = isImageAvatar(u.avatar) ? u.avatar : '';
+      if (beAvatar !== s.avatar) { s.avatar = beAvatar; changed = true; }
+      if (changed) { saveSettings(s); }
+      // reflect backend name in the input field
+      const nameInput = c.querySelector('#acc-name');
+      if (nameInput && u.full_name) nameInput.value = u.full_name;
+      // reflect backend avatar in the preview
+      const prev = c.querySelector('#acc-avatar-preview');
+      if (prev) {
+        if (s.avatar) {
+          prev.style.background = 'url(' + s.avatar + ') center/cover';
+          prev.textContent = '';
+        } else {
+          prev.style.background = 'linear-gradient(135deg,#0a84ff,#003a70)';
+          prev.textContent = (s.userName[0] || 'U');
+        }
+      }
     }).catch(() => {});
   }
 

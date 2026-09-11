@@ -68,7 +68,7 @@ export const API = {
   lab3GenerateWork: () => api('/api/lab3/generate-work', { method: 'POST' }),
   // ollama
   ollamaStatus: () => api('/api/ollama/status'),
-  ollamaChat: (messages, model) => api('/api/ollama/chat', { method: 'POST', body: JSON.stringify({ messages, model }) }),
+  ollamaChat: (messages, model) => api('/api/ollama/chat', { method: 'POST', body: { messages, model } }),
   // browser proxy
   browse: (url) => api('/api/browse?url=' + encodeURIComponent(url)),
 };

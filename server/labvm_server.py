@@ -17,6 +17,12 @@ from database import get_db, init_db, _now, _now_dt
 app = FastAPI(title="IT/IAM Help Desk Lab VM")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+# Application version — bumped with each release. The auto-updater compares
+# this against the latest GitHub Release tag to decide whether to update.
+APP_VERSION = "1.1"
+GITHUB_OWNER = "pitchiluxe"
+GITHUB_REPO = "IT_IAM_HelpDesk_Big_Labs"
+
 # In-memory sessions
 sessions = {}
 
@@ -62,7 +68,7 @@ async def login(request: Request):
         raise HTTPException(401, "Invalid credentials")
     sid = secrets.token_urlsafe(32)
     sessions[sid] = dict(row)
-    resp = JSONResponse({"user": {"username": row["username"], "role": row["role"], "full_name": row["full_name"]}})
+    resp = JSONResponse({"user": {"username": row["username"], "role": row["role"], "full_name": row["full_name"], "avatar": row["avatar"]}})
     resp.set_cookie("session_id", sid, httponly=True)
     return resp
 
@@ -82,7 +88,57 @@ async def me(request: Request):
     u = current_user(request)
     if not u:
         raise HTTPException(401, "Not authenticated")
-    return {"username": u["username"], "role": u["role"], "full_name": u["full_name"]}
+    return {"username": u["username"], "role": u["role"], "full_name": u["full_name"], "avatar": u["avatar"]}
+
+
+@app.put("/api/me/profile")
+async def update_profile(request: Request):
+    """Update the current user's display name and/or avatar picture.
+
+    Persisted to the SQLite database so it survives app restarts (unlike
+    localStorage which is per-browser-profile). The avatar is stored as a
+    data URL string (or empty string to clear)."""
+    u = current_user(request)
+    if not u:
+        raise HTTPException(401, "Not authenticated")
+    body = await request.json()
+    conn = get_db()
+    fields, vals = [], []
+    if "full_name" in body:
+        name = (body["full_name"] or "").strip()
+        if not name:
+            conn.close()
+            raise HTTPException(400, "Display name cannot be empty")
+        fields.append("full_name=?")
+        vals.append(name)
+    if "avatar" in body:
+        # Cap avatar size to avoid storing huge blobs (2MB image ~ 2.7MB base64)
+        avatar = body["avatar"] or ""
+        if len(avatar) > 3 * 1024 * 1024:
+            conn.close()
+            raise HTTPException(400, "Avatar too large")
+        fields.append("avatar=?")
+        vals.append(avatar)
+    if not fields:
+        conn.close()
+        return {"ok": True}
+    vals.append(u["username"])
+    conn.execute(f"UPDATE users SET {','.join(fields)} WHERE username=?", vals)
+    conn.commit()
+    # refresh the in-memory session so /api/me reflects the change immediately
+    row = conn.execute("SELECT * FROM users WHERE username=?", (u["username"],)).fetchone()
+    conn.close()
+    if row:
+        sid = request.cookies.get("session_id")
+        if sid and sid in sessions:
+            sessions[sid] = dict(row)
+    return {"ok": True, "full_name": row["full_name"] if row else None, "avatar": row["avatar"] if row else None}
+
+
+@app.get("/api/version")
+async def version():
+    """Return the current app version (used by the frontend and auto-updater)."""
+    return {"version": APP_VERSION, "repo": f"{GITHUB_OWNER}/{GITHUB_REPO}"}
 
 
 @app.post("/api/change-password")
@@ -835,8 +891,15 @@ async def ollama_status(request: Request):
 async def ollama_chat(request: Request):
     require_user(request)
     body = await request.json()
-    messages = body.get("messages", [])
-    model = body.get("model", OLLAMA_MODEL)
+    # Be resilient: if the client double-stringified the body, parse it again
+    if isinstance(body, str):
+        import json as _json
+        try:
+            body = _json.loads(body)
+        except Exception:
+            body = {}
+    messages = body.get("messages", []) if isinstance(body, dict) else []
+    model = body.get("model", OLLAMA_MODEL) if isinstance(body, dict) else OLLAMA_MODEL
     if not await ollama_available():
         return {"reply": "I'm currently offline. Please make sure Ollama is installed and running (ollama serve). Once Ollama is available, I'll be able to help you with IT, IAM, and help desk topics.", "offline": True}
     try:
@@ -927,66 +990,158 @@ async def lab3_generate_work(request: Request):
     ad_groups = [dict(r) for r in conn.execute("SELECT name, ou_id FROM ad_groups").fetchall()]
     ous = [dict(r) for r in conn.execute("SELECT id, name, parent_id FROM ad_ous").fetchall()]
     open_tickets = conn.execute("SELECT COUNT(*) FROM tickets WHERE status NOT IN ('Resolved','Closed')").fetchone()[0]
+    body = await request.json() if request.method == "POST" else {}
+    count = max(1, min(int(body.get("count", 1)), 10))
 
-    # Scenario templates
+    # ---- State-aware scenario selection (mirrors the reference project) ----
+    # The environment decides what work is available; Ollama only writes prose.
     import random
-    scenarios = [
-        {"kind": "password-reset", "category": "Access", "priority": "P2", "title": "Password reset request", "desc": "User reports being locked out after multiple failed login attempts."},
-        {"kind": "mfa-issue", "category": "Access", "priority": "P2", "title": "MFA device problem", "desc": "User reports repeated MFA prompts or lost authenticator device."},
-        {"kind": "onboarding", "category": "Provisioning", "priority": "P3", "title": "New hire onboarding", "desc": "Provision account, assign to department group, schedule orientation."},
-        {"kind": "termination", "category": "Deprovisioning", "priority": "P1", "title": "Terminate employee access", "desc": "Disable account, revoke sessions, remove from all groups."},
-        {"kind": "access-request", "category": "Access", "priority": "P3", "title": "Application access request", "desc": "User requests access to additional application. Verify justification and least-privilege."},
-        {"kind": "incident", "category": "Security", "priority": "P1", "title": "Possible security incident", "desc": "Suspicious activity detected. Triage, contain, document, and escalate per IR plan."},
-        {"kind": "transfer", "category": "Provisioning", "priority": "P3", "title": "Department transfer", "desc": "Move user to new group, revoke old group memberships, verify access."},
-    ]
 
-    # Pick a random scenario
-    scenario = random.choice(scenarios)
+    enabled_users = [u for u in ad_users if u["enabled"]]
+    locked_users = [u for u in ad_users if u["locked"]]
+    disabled_users = [u for u in ad_users if not u["enabled"]]
 
-    # Try AI-generated prose
+    candidates = []
+
+    # 1. Lockout — only if there is an enabled user to lock
+    if enabled_users:
+        target = random.choice(enabled_users)
+        candidates.append({
+            "kind": "password-reset", "category": "Account & Access", "priority": "P1",
+            "title": f"Account locked out: {target['sam_account_name']}",
+            "desc": f"{target['display_name']} ({target['sam_account_name']}) cannot sign in and reports repeated failed attempts. Check the audit log, unlock the account, and reset the password with a forced change at next sign-in.",
+            "target_user": target["sam_account_name"],
+        })
+
+    # 2. Offboarding — only if there is an enabled user who could leave
+    if enabled_users:
+        target = random.choice(enabled_users)
+        candidates.append({
+            "kind": "termination", "category": "Security", "priority": "P1",
+            "title": f"Offboarding: {target['sam_account_name']} leaves today",
+            "desc": f"{target['display_name']} ({target['sam_account_name']}) leaves the company today. Disable the account, revoke any live sessions, and remove from all groups. Confirm they can no longer sign in.",
+            "target_user": target["sam_account_name"],
+        })
+
+    # 3. Transfer — only if there are users in different OUs
+    if len(enabled_users) >= 2:
+        target = random.choice(enabled_users)
+        candidates.append({
+            "kind": "transfer", "category": "Account & Access", "priority": "P3",
+            "title": f"Transfer: {target['sam_account_name']} moves department",
+            "desc": f"{target['display_name']} ({target['sam_account_name']}) is changing team. Move the account to the correct OU, add the groups the new role needs and remove the ones it does not.",
+            "target_user": target["sam_account_name"],
+        })
+
+    # 4. MFA issue
+    if enabled_users:
+        target = random.choice(enabled_users)
+        candidates.append({
+            "kind": "mfa-issue", "category": "MFA / Identity", "priority": "P2",
+            "title": f"MFA device problem: {target['sam_account_name']}",
+            "desc": f"{target['display_name']} ({target['sam_account_name']}) reports repeated MFA prompts or a lost authenticator device. Verify their identity, reset MFA, and audit recent sign-ins.",
+            "target_user": target["sam_account_name"],
+        })
+
+    # 5. Access request
+    if ad_groups and enabled_users:
+        target = random.choice(enabled_users)
+        grp = random.choice(ad_groups)
+        candidates.append({
+            "kind": "access-request", "category": "Account & Access", "priority": "P3",
+            "title": f"Access request: {target['sam_account_name']} needs {grp['name']}",
+            "desc": f"{target['display_name']} ({target['sam_account_name']}) requests access to the {grp['name']} group. Verify justification and check least-privilege before granting.",
+            "target_user": target["sam_account_name"],
+        })
+
+    # 6. Security incident
+    candidates.append({
+        "kind": "incident", "category": "Security", "priority": "P1",
+        "title": "Possible security incident detected",
+        "desc": "Suspicious activity detected on the network — multiple failed sign-ins from an unusual IP range. Triage, contain, document, and escalate per the IR plan.",
+    })
+
+    # 7. Onboarding (always available)
+    candidates.append({
+        "kind": "onboarding", "category": "Request", "priority": "P3",
+        "title": "New hire onboarding",
+        "desc": "A new team member starts Monday. Provision the account, assign to the correct department group and OU, and schedule orientation.",
+    })
+
+    # Pick scenarios (no duplicates by kind if possible)
+    random.shuffle(candidates)
+    chosen = []
+    seen_kinds = set()
+    for c in candidates:
+        if c["kind"] not in seen_kinds or len(chosen) < count:
+            chosen.append(c)
+            seen_kinds.add(c["kind"])
+        if len(chosen) >= count:
+            break
+    if len(chosen) < count:
+        chosen.extend(candidates[:count - len(chosen)])
+
+    # Check Ollama availability once
+    use_ollama = await ollama_available()
     user_list = ", ".join(f"{u['sam_account_name']} ({u['display_name']}, {u.get('department','')})" for u in ad_users[:10])
-    prompt = f"""You are generating a realistic IT help desk ticket for a training lab. Write a professional ticket subject and description.
+    group_list = ", ".join(g["name"] for g in ad_groups[:10])
 
-Scenario type: {scenario['kind']}
-Priority: {scenario['priority']}
-Available users: {user_list}
+    created = []
+    for scenario in chosen:
+        subject = scenario["title"]
+        description = scenario["desc"]
 
-Write ONLY a JSON object with "subject" (max 80 chars) and "description" (2-3 sentences) fields. Make it realistic and specific to one of the listed users. No markdown, no explanation, just the JSON."""
+        # Try AI-generated prose (Ollama rewrites the wording, not the scenario)
+        if use_ollama:
+            prompt = f"""You are writing an IT service desk ticket for an identity administration lab.
 
-    ai_text = await ollama_generate(prompt)
-    subject = scenario["title"]
-    description = scenario["desc"]
+CURRENT ENVIRONMENT — do not contradict any of this:
+Users: {user_list}
+Groups: {group_list}
 
-    if ai_text:
-        try:
-            import json
-            # Try to extract JSON from the response
-            text = ai_text.strip()
-            if "```json" in text:
-                text = text.split("```json")[1].split("```")[0].strip()
-            elif "```" in text:
-                text = text.split("```")[1].split("```")[0].strip()
-            parsed = json.loads(text)
-            subject = parsed.get("subject", subject)
-            description = parsed.get("description", description)
-        except Exception:
-            pass
+The ticket must be about exactly this task:
+Subject: {scenario['title']}
+Task: {scenario['desc']}
 
-    # Create the ticket
-    impact = "High" if scenario["priority"] in ("P1",) else "Medium" if scenario["priority"] == "P2" else "Low"
-    urgency = "High" if scenario["priority"] in ("P1", "P2") else "Medium" if scenario["priority"] == "P3" else "Low"
-    sla = (_now_dt() + timedelta(hours=SLA_HOURS.get(scenario["priority"], 24))).isoformat(timespec="seconds")
-    count = conn.execute("SELECT COUNT(*) FROM tickets").fetchone()[0] + 1
-    tnum = f"INC{count:06d}"
+Rewrite it as a short ticket from a colleague. Keep every account name and group name exactly as given. Do not invent people, systems or accounts that are not listed above. Two or three sentences.
 
-    conn.execute(
-        "INSERT INTO tickets (ticket_number, title, description, category, subcategory, impact, urgency, priority, status, assignment_group, assigned_agent, created_time, updated_time, sla_target, resolution, requester) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (tnum, subject, description, scenario["category"], scenario["kind"], impact, urgency, scenario["priority"], "New", "L1 Help Desk", "", _now_str(), _now_str(), sla, "", "system"),
-    )
+Reply with JSON only: {{"subject": "...", "description": "..."}}"""
+            ai_text = await ollama_generate(prompt)
+            if ai_text:
+                try:
+                    import json
+                    text = ai_text.strip()
+                    if "```json" in text:
+                        text = text.split("```json")[1].split("```")[0].strip()
+                    elif "```" in text:
+                        text = text.split("```")[1].split("```")[0].strip()
+                    parsed = json.loads(text)
+                    if parsed.get("subject") and parsed.get("description"):
+                        # Guard: don't let the model drop the target user name
+                        target = scenario.get("target_user", "")
+                        if not target or target in parsed["subject"] or target in parsed["description"]:
+                            subject = parsed["subject"]
+                            description = parsed["description"]
+                except Exception:
+                    pass
+
+        # Create the ticket
+        impact = "High" if scenario["priority"] in ("P1",) else "Medium" if scenario["priority"] == "P2" else "Low"
+        urgency = "High" if scenario["priority"] in ("P1", "P2") else "Medium" if scenario["priority"] == "P3" else "Low"
+        sla = (_now_dt() + timedelta(hours=SLA_HOURS.get(scenario["priority"], 24))).isoformat(timespec="seconds")
+        tcount = conn.execute("SELECT COUNT(*) FROM tickets").fetchone()[0] + 1
+        tnum = f"INC{tcount:06d}"
+
+        conn.execute(
+            "INSERT INTO tickets (ticket_number, title, description, category, subcategory, impact, urgency, priority, status, assignment_group, assigned_agent, created_time, updated_time, sla_target, resolution, requester) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (tnum, subject, description, scenario["category"], scenario["kind"], impact, urgency, scenario["priority"], "New", "L1 Help Desk", "", _now_str(), _now_str(), sla, "", "system"),
+        )
+        created.append({"ticket_number": tnum, "subject": subject})
+
     conn.commit()
     conn.close()
 
-    return {"ok": True, "ticket_number": tnum, "subject": subject, "used_ollama": ai_text is not None}
+    return {"ok": True, "raised": len(created), "tickets": created, "used_ollama": use_ollama}
 
 
 # ---------------------------------------------------------------------------
@@ -1506,6 +1661,129 @@ def _wait_for_server(timeout=15):
     return False
 
 
+# ---------------------------------------------------------------------------
+# Silent auto-update from GitHub Releases
+# ---------------------------------------------------------------------------
+def _parse_version(tag):
+    """Convert a release tag like 'v1.2.3' into a comparable tuple (1, 2, 3)."""
+    import re
+    nums = [int(n) for n in re.findall(r'\d+', tag or '')]
+    return tuple(nums) or (0,)
+
+
+def _fetch_latest_release():
+    """Query the GitHub API for the latest release of this repo.
+
+    Returns a dict with 'tag' and 'assets' (list of {name, url}) or None on
+    failure. Uses a short timeout so a slow/offline network never blocks
+    startup.
+    """
+    import urllib.request
+    import json as _json
+    api = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/releases/latest"
+    req = urllib.request.Request(api, headers={
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "IT-IAM-HelpDesk-Lab-Updater",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = _json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return None
+    return {
+        "tag": data.get("tag_name", ""),
+        "assets": [
+            {"name": a.get("name", ""), "url": a.get("browser_download_url", "")}
+            for a in data.get("assets", [])
+        ],
+    }
+
+
+def _download_file(url, dest, timeout=120):
+    """Download a file to dest, returning True on success."""
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "IT-IAM-HelpDesk-Lab-Updater"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r, open(dest, "wb") as f:
+            while True:
+                chunk = r.read(65536)
+                if not chunk:
+                    break
+                f.write(chunk)
+        return True
+    except Exception:
+        return False
+
+
+def _notify_tray(icon_holder, title, message):
+    """Show a brief balloon notification from the tray icon (best-effort)."""
+    try:
+        if icon_holder and icon_holder[0]:
+            icon_holder[0].notify(message, title)
+    except Exception:
+        pass
+
+
+def check_and_apply_update(icon_holder=None):
+    """Check GitHub for a newer release; if found, silently download and
+    install it (Inno Setup /VERYSILENT), then exit so the installer can
+    replace files and relaunch.
+
+    Only runs when the app is frozen (bundled .exe) — never in dev mode.
+    """
+    if not getattr(__import__('sys'), 'frozen', False):
+        return  # dev mode: never auto-update
+
+    rel = _fetch_latest_release()
+    if not rel or not rel.get("tag"):
+        return
+
+    if _parse_version(rel["tag"]) <= _parse_version(APP_VERSION):
+        return  # already up to date
+
+    # Find the installer asset (Inno Setup produces *_Setup_*.exe)
+    installer_asset = None
+    for a in rel["assets"]:
+        name = a.get("name", "").lower()
+        if name.endswith(".exe") and ("setup" in name or "install" in name):
+            installer_asset = a
+            break
+    if not installer_asset:
+        # fall back to any .exe asset
+        for a in rel["assets"]:
+            if a.get("name", "").lower().endswith(".exe"):
+                installer_asset = a
+                break
+    if not installer_asset or not installer_asset.get("url"):
+        return
+
+    _notify_tray(icon_holder, "Updating", f"Downloading {rel['tag']}...")
+
+    # Download to a temp file
+    import tempfile, os as _os
+    tmp_dir = _os.path.join(tempfile.gettempdir(), "IT_IAM_HelpDesk_Lab_update")
+    _os.makedirs(tmp_dir, exist_ok=True)
+    dest = _os.path.join(tmp_dir, _os.path.basename(installer_asset["url"]) or "update.exe")
+    if not _download_file(installer_asset["url"], dest):
+        return
+
+    _notify_tray(icon_holder, "Updating", f"Installing {rel['tag']} — the app will restart shortly.")
+
+    # Launch the installer silently. Inno Setup flags:
+    #   /VERYSILENT  — no UI
+    #   /NORESTART   — we handle restart ourselves
+    #   /SP-         — suppress the "This will install..." dialog
+    #   /CLOSEAPPLICATIONS — close the running app so files can be replaced
+    import subprocess, sys as _sys
+    try:
+        subprocess.Popen([dest, "/VERYSILENT", "/NORESTART", "/SP-", "/CLOSEAPPLICATIONS"])
+    except Exception:
+        return
+
+    # Exit so the installer can replace the locked executable and relaunch
+    _os._exit(0)
+
+
 if __name__ == "__main__":
     import sys
     import os
@@ -1514,12 +1792,16 @@ if __name__ == "__main__":
     import time
     import traceback
 
+    # App data folder (persisted across restarts): used for logs, the database
+    # (when frozen) and the WebView2 user-data folder. Defined unconditionally
+    # so it is available whether or not the app is bundled.
+    _app_data = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 'IT_IAM_HelpDesk_Lab')
+    os.makedirs(_app_data, exist_ok=True)
+
     # When bundled with PyInstaller --windowed, sys.stdout and sys.stderr are None
     # because there is no console. Uvicorn's logging crashes on None.isatty().
     # Redirect them to a log file in LocalAppData so the server can start cleanly.
     if getattr(sys, 'frozen', False):
-        _app_data = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 'IT_IAM_HelpDesk_Lab')
-        os.makedirs(_app_data, exist_ok=True)
         if sys.stdout is None or sys.stderr is None:
             _log_path = os.path.join(_app_data, 'server.log')
             _log_file = open(_log_path, 'w')
@@ -1586,6 +1868,10 @@ if __name__ == "__main__":
     _tray_icon[0] = tray
     threading.Thread(target=tray.run, daemon=True).start()
 
+    # Check for a silent auto-update from GitHub Releases in the background.
+    # Only acts when frozen (bundled .exe); in dev mode it returns immediately.
+    threading.Thread(target=check_and_apply_update, args=(_tray_icon,), daemon=True).start()
+
     # Create the main application window (native, not a browser)
     main_window = webview.create_window(
         "IT / IAM / Help Desk Lab VM",
@@ -1601,9 +1887,17 @@ if __name__ == "__main__":
 
     main_window.events.closing += on_closing
 
+    # Persistent storage: pywebview defaults to private_mode=True which
+    # discards localStorage/cookies on exit (so saved name, picture and
+    # personalization reverted to defaults every restart). Disable private
+    # mode and point the WebView2 user-data folder at LocalAppData so browser
+    # storage survives across app restarts.
+    _webview_storage = os.path.join(_app_data, 'webview_data')
+    os.makedirs(_webview_storage, exist_ok=True)
+
     # Start the pywebview event loop (blocks until window is closed)
     try:
-        webview.start()
+        webview.start(private_mode=False, storage_path=_webview_storage)
     except Exception:
         pass
 

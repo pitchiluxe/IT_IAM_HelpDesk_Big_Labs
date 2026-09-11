@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lab VM - IT/IAM Help Desk Desktop</title>
-<link rel="stylesheet" href="/static/css/desktop.css">
-<link rel="stylesheet" href="/static/css/apps.css">
+<link rel="stylesheet" href="/static/css/desktop.css?v=6">
+<link rel="stylesheet" href="/static/css/apps.css?v=6">
 <link rel="stylesheet" href="/static/css/accessories.css">
 <link rel="stylesheet" href="/static/css/office.css">
 <link rel="stylesheet" href="/static/css/ad.css">
-<link rel="stylesheet" href="/static/css/roadmap.css">
+<link rel="stylesheet" href="/static/css/roadmap.css?v=6">
 </head>
 <body>
 
@@ -68,6 +68,22 @@
       <button class="start-power" id="start-power" title="Sign out">⏻</button>
     </div>
   </div>
+
+  <!-- Calendar Flyout (Windows 11-style, pops up from the taskbar clock) -->
+  <div id="cal-flyout" class="cal-flyout hidden">
+    <div class="cal-flyout-time">
+      <div id="cal-flyout-date"></div>
+      <div id="cal-flyout-time-clock" class="cal-flyout-time-clock"></div>
+    </div>
+    <div class="cal-flyout-cal">
+      <div class="cal-flyout-nav">
+        <button class="btn btn-sm" id="cal-flyout-prev">‹</button>
+        <span id="cal-flyout-month"></span>
+        <button class="btn btn-sm" id="cal-flyout-next">›</button>
+      </div>
+      <div class="cal-flyout-grid" id="cal-flyout-grid"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -105,14 +121,20 @@ document.getElementById('login-form').addEventListener('submit', function(e){
       err.textContent='';
       document.getElementById('lockscreen').classList.add('hidden');
       document.getElementById('desktop').classList.remove('hidden');
-      document.getElementById('start-user-name').textContent=res.user.full_name;
-      document.getElementById('start-user-avatar').textContent=(res.user.full_name||'U')[0];
-      document.getElementById('lock-avatar').textContent=(res.user.full_name||'U')[0];
-      document.getElementById('lock-name').textContent=res.user.full_name;
+      var fn=res.user.full_name||'User';
+      var hasImg=res.user.avatar && res.user.avatar.indexOf('data:')===0;
+      document.getElementById('start-user-name').textContent=fn;
+      document.getElementById('lock-name').textContent=fn;
+      ['lock-avatar','start-user-avatar'].forEach(function(id){
+        var el=document.getElementById(id);
+        if(hasImg){ el.style.background='url('+res.user.avatar+') center/cover'; el.textContent=''; }
+        else { el.style.background=''; el.textContent=(fn[0]||'U'); }
+      });
       if(window.LabVM && window.LabVM.enterDesktop){
         window.LabVM.enterDesktop(res.user);
+      } else {
+        buildFallbackIcons();
       }
-      buildFallbackIcons();
     })
     .catch(function(ex){ err.textContent='Invalid credentials. Try the accounts shown below.'; _loginDone=false; });
 });
@@ -120,7 +142,7 @@ document.getElementById('login-form').addEventListener('submit', function(e){
 function loadModule(){
   var s=document.createElement('script');
   s.type='module';
-  s.src='/static/js/main.js';
+  s.src='/static/js/main.js?v=6';
   document.head.appendChild(s);
 }
 
@@ -186,6 +208,6 @@ function openFallbackApp(app){
   }
 }
 </script>
-<script type="module" src="/static/js/main.js"></script>
+<script type="module" src="/static/js/main.js?v=6"></script>
 </body>
 </html>

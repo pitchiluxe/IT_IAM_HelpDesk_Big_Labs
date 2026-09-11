@@ -8,6 +8,8 @@ import { openCalendar, openStickyNotes, openEpicPen, openNotepadPP, openChrome, 
 import { openWord, openExcel, openPowerPoint } from './apps/office.js';
 import { openADUC } from './apps/ad.js';
 import { openRoadmap } from './apps/roadmap.js';
+import { openSchedule } from './apps/schedule.js';
+import { openOkta } from './apps/okta.js';
 import { openChatbot } from './apps/chatbot.js';
 import { initContextMenus, initMouseShortcuts, applyDesktopView } from './context-menus.js';
 
@@ -33,11 +35,13 @@ const APPS = [
   { id: 'ppt', title: 'PowerPoint', icon: '📽️', opener: openPowerPoint, group: 'Office' },
   { id: 'aduc', title: 'Active Directory', icon: '🏢', opener: openADUC, group: 'Administration' },
   { id: 'roadmap', title: 'Lab Roadmap', icon: '🗺️', opener: openRoadmap, group: 'Help' },
+  { id: 'schedule', title: 'Schedule', icon: '📋', opener: openSchedule, group: 'Help' },
   { id: 'lusrmgr', title: 'Local Users and Groups', icon: '👥', opener: openLocalUsers, group: 'Lab 1' },
   { id: 'explorer', title: 'File Explorer', icon: '📁', opener: openFileExplorer, group: 'Lab 1' },
   { id: 'powershell', title: 'PowerShell', icon: '⚡', opener: openPowerShell, group: 'Lab 1' },
   { id: 'cmd', title: 'Command Prompt', icon: '🖥️', opener: openCMD, group: 'Lab 1' },
   { id: 'entra', title: 'Entra ID Admin Center', icon: '🔐', opener: openEntraPortal, group: 'Lab 2' },
+  { id: 'okta', title: 'Okta Admin Console', icon: '🟦', opener: openOkta, group: 'Lab 2' },
   { id: 'signins', title: 'Sign-in Logs', icon: '📜', opener: openSignInLogs, group: 'Lab 2' },
   { id: 'servicedesk', title: 'Service Desk Console', icon: '🎫', opener: openServiceDesk, group: 'Lab 3' },
   { id: 'kb', title: 'Knowledge Base', icon: '📚', opener: openKnowledgeBase, group: 'Lab 3' },
@@ -65,6 +69,63 @@ function tick() {
 }
 setInterval(tick, 1000); tick();
 
+// ---- Calendar flyout (Windows 11-style, toggled by clicking the taskbar clock) ----
+const calFlyout = document.getElementById('cal-flyout');
+let calFlyDate = new Date();
+const CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const CAL_DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function renderCalFlyout() {
+  const y = calFlyDate.getFullYear(), m = calFlyDate.getMonth();
+  const first = new Date(y, m, 1).getDay();
+  const days = new Date(y, m + 1, 0).getDate();
+  const prevDays = new Date(y, m, 0).getDate();
+  const today = new Date();
+  const isThisMonth = y === today.getFullYear() && m === today.getMonth();
+  document.getElementById('cal-flyout-month').textContent = `${CAL_MONTHS[m]} ${y}`;
+  let cells = '';
+  for (let i = 0; i < 7; i++) cells += `<div class="cf-dow">${CAL_DOW[i]}</div>`;
+  for (let i = first - 1; i >= 0; i--) cells += `<div class="cf-day other">${prevDays - i}</div>`;
+  for (let d = 1; d <= days; d++) {
+    const isToday = isThisMonth && d === today.getDate();
+    cells += `<div class="cf-day ${isToday ? 'today' : ''}">${d}</div>`;
+  }
+  const total = first + days;
+  const remaining = (7 - (total % 7)) % 7;
+  for (let d = 1; d <= remaining; d++) cells += `<div class="cf-day other">${d}</div>`;
+  document.getElementById('cal-flyout-grid').innerHTML = cells;
+}
+
+function updateCalFlyoutClock() {
+  const now = new Date();
+  const dEl = document.getElementById('cal-flyout-date');
+  const tEl = document.getElementById('cal-flyout-time-clock');
+  if (dEl) dEl.textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  if (tEl) tEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function toggleCalFlyout(show) {
+  const open = show === undefined ? calFlyout.classList.contains('hidden') : show;
+  calFlyout.classList.toggle('hidden', !open);
+  if (open) { calFlyDate = new Date(); renderCalFlyout(); updateCalFlyoutClock(); }
+}
+
+document.querySelector('.tray').addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleStart(false);
+  toggleCalFlyout();
+});
+document.addEventListener('click', (e) => {
+  if (!calFlyout.contains(e.target) && !e.target.closest('.tray')) toggleCalFlyout(false);
+});
+document.getElementById('cal-flyout-prev').onclick = () => {
+  calFlyDate = new Date(calFlyDate.getFullYear(), calFlyDate.getMonth() - 1, 1); renderCalFlyout();
+};
+document.getElementById('cal-flyout-next').onclick = () => {
+  calFlyDate = new Date(calFlyDate.getFullYear(), calFlyDate.getMonth() + 1, 1); renderCalFlyout();
+};
+setInterval(updateCalFlyoutClock, 1000);
+
 // ---- Login ----
 document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -87,10 +148,29 @@ async function enterDesktop(user) {
   try {
     document.getElementById('lockscreen').classList.add('hidden');
     document.getElementById('desktop').classList.remove('hidden');
-    document.getElementById('start-user-name').textContent = user.full_name;
-    document.getElementById('start-user-avatar').textContent = (user.full_name || 'U')[0];
-    document.getElementById('lock-avatar').textContent = (user.full_name || 'U')[0];
-    document.getElementById('lock-name').textContent = user.full_name;
+    const name = user.full_name || 'User';
+    const hasImg = user.avatar && user.avatar.startsWith('data:');
+    // keep localStorage in sync with the backend (source of truth) so the
+    // lock screen shows the right name/picture before the next login too
+    try {
+      const s = JSON.parse(localStorage.getItem('labvm-settings') || '{}');
+      let changed = false;
+      if (user.full_name && s.userName !== name) { s.userName = name; changed = true; }
+      const beAvatar = hasImg ? user.avatar : '';
+      if (s.avatar !== beAvatar) { s.avatar = beAvatar; changed = true; }
+      if (changed) localStorage.setItem('labvm-settings', JSON.stringify(s));
+    } catch {}
+    document.getElementById('start-user-name').textContent = name;
+    document.getElementById('lock-name').textContent = name;
+    document.querySelectorAll('#lock-avatar, #start-user-avatar').forEach(el => {
+      if (hasImg) {
+        el.style.background = 'url(' + user.avatar + ') center/cover';
+        el.textContent = '';
+      } else {
+        el.style.background = '';
+        el.textContent = (name[0] || 'U');
+      }
+    });
     buildDesktopIcons();
     buildStartMenu();
     rebuildTaskbar();
@@ -106,7 +186,14 @@ function buildDesktopIcons() {
   const c = document.getElementById('desktop-icons');
   c.innerHTML = '';
   const view = JSON.parse(localStorage.getItem('labvm-desktop-view') || '{"size":"medium","showIcons":true,"autoArrange":true,"alignGrid":true}');
-  const positions = JSON.parse(localStorage.getItem('labvm-icon-positions') || '{}');
+  let positions = JSON.parse(localStorage.getItem('labvm-icon-positions') || '{}');
+  // If ANY app is missing a saved position (e.g. a new app was added),
+  // clear all saved positions so every icon gets a fresh auto-arranged spot.
+  const hasAllPositions = APPS.every(app => positions[app.id]);
+  if (!hasAllPositions) {
+    positions = {};
+    localStorage.removeItem('labvm-icon-positions');
+  }
   const gridSize = view.alignGrid !== false ? 10 : 1;
   const iconW = view.size === 'large' ? 104 : view.size === 'small' ? 64 : 84;
   const iconH = view.size === 'large' ? 104 : view.size === 'small' ? 64 : 84;

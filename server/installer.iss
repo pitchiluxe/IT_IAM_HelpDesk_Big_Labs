@@ -3,7 +3,7 @@
 ; creates Start Menu and Desktop shortcuts, and includes an uninstaller.
 
 #define MyAppName "IT IAM Help Desk Lab"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.1"
 #define MyAppPublisher "Erick Omari"
 #define MyAppExeName "IT_IAM_HelpDesk_Lab.exe"
 #define MyAppIcon "..\app.ico"
@@ -17,7 +17,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..
-OutputBaseFilename=IT_IAM_HelpDesk_Lab_Setup_v1.0
+OutputBaseFilename=IT_IAM_HelpDesk_Lab_Setup_v1.1
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64
@@ -26,6 +26,9 @@ PrivilegesRequired=admin
 SetupIconFile={#MyAppIcon}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 WizardStyle=modern
+; Allow the installer to close the running app so it can replace the exe
+; during a silent auto-update (called with /VERYSILENT /CLOSEAPPLICATIONS).
+CloseApplications=force
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

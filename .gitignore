@@ -9,6 +9,10 @@ build/
 dist/
 *.spec
 
+# Distribution artifacts (uploaded to GitHub Releases, not committed)
+IT_IAM_HelpDesk_Lab-*.zip
+IT_IAM_HelpDesk_Lab_Setup_*.exe
+
 # Database (local runtime data)
 *.db
 

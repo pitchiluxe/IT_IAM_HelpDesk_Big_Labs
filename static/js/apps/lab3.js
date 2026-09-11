@@ -72,7 +72,9 @@ export function openServiceDesk(body) {
         <h2>🎫 Service Desk</h2>
         <span class="muted">— Ticket Queue</span>
         <div class="spacer"></div>
+        <span id="sd-ollama-status" style="font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid #ddd;cursor:help" title="Ollama AI status">⏳ Ollama…</span>
         <button class="btn btn-sm btn-primary" id="sd-gen">🤖 Generate Work</button>
+        <button class="btn btn-sm" id="sd-gen-multi" title="Generate multiple tickets at once">🤖 Generate 5</button>
         <button class="btn btn-sm" id="sd-new">➕ New</button>
         <button class="btn btn-sm" id="sd-refresh">↻</button>
       </div>
@@ -80,6 +82,31 @@ export function openServiceDesk(body) {
     </div>`;
 
   const wrap = body.querySelector('#sd-body');
+
+  // Check Ollama status and update the badge
+  (async () => {
+    const badge = body.querySelector('#sd-ollama-status');
+    if (!badge) return;
+    try {
+      const r = await fetch('/api/ollama/status', { credentials: 'same-origin' });
+      const d = await r.json();
+      if (d.available) {
+        badge.textContent = '🟢 Ollama: ' + (d.model || 'ready');
+        badge.style.borderColor = '#2ecc71';
+        badge.style.color = '#2ecc71';
+        badge.title = `Ollama is running (${d.model}). Ticket prose will be AI-generated.`;
+      } else {
+        badge.textContent = '⚪ Ollama: offline';
+        badge.style.borderColor = '#ccc';
+        badge.style.color = '#888';
+        badge.title = 'Ollama is not running. Tickets will use built-in scenarios. Install Ollama and run "ollama serve" for AI-generated tickets.';
+      }
+    } catch {
+      badge.textContent = '⚪ Ollama: offline';
+      badge.style.borderColor = '#ccc';
+      badge.style.color = '#888';
+    }
+  })();
 
   async function load() {
     try {
@@ -428,13 +455,24 @@ export function openServiceDesk(body) {
     };
   }
 
-  async function generateWork() {
-    const btn = body.querySelector('#sd-gen');
+  async function generateWork(count) {
+    const btn = body.querySelector(count > 1 ? '#sd-gen-multi' : '#sd-gen');
     const orig = btn.textContent;
     btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = '🤖 Generating…';
     try {
-      const res = await API.lab3GenerateWork();
-      toast(`Raised ${res.ticket_number}${res.used_ollama ? ' (written by Ollama)' : ''}`);
+      const r = await fetch('/api/lab3/generate-work', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ count: count || 1 }),
+      });
+      const res = await r.json();
+      if (res.raised > 1) {
+        toast(`Raised ${res.raised} tickets${res.used_ollama ? ' (written by Ollama)' : ''}`);
+      } else {
+        const t = (res.tickets || [])[0];
+        toast(`Raised ${t?.ticket_number || 'ticket'}${res.used_ollama ? ' (written by Ollama)' : ''}`);
+      }
       load();
     } catch (e) {
       toast('Could not generate work: ' + e.message);
@@ -445,7 +483,8 @@ export function openServiceDesk(body) {
 
   body.querySelector('#sd-refresh').onclick = load;
   body.querySelector('#sd-new').onclick = newTicket;
-  body.querySelector('#sd-gen').onclick = generateWork;
+  body.querySelector('#sd-gen').onclick = () => generateWork(1);
+  body.querySelector('#sd-gen-multi').onclick = () => generateWork(5);
 
   // SLA tick — update badges every second without full re-render
   slaInterval = setInterval(() => {
